@@ -39,3 +39,5 @@ DB 상태는 `docker compose ps`로 확인할 수 있습니다. 작업을 마치
 PostgreSQL과 Redis 포트는 개발 PC의 `127.0.0.1:5432`, `127.0.0.1:6379`에만 열립니다. 다른 DB에 연결할 때는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`, `REDIS_PORT` 환경 변수를 설정하세요. 기존 데이터를 담은 DB에는 초기 마이그레이션을 그대로 적용하지 마세요.
 
 스키마를 바꾸려면 적용된 `V1` 파일을 수정하지 말고 `V2__...sql` 같은 새 마이그레이션 파일을 추가합니다. [`docs/database/schema.sql`](docs/database/schema.sql)은 초기 설계를 살펴보기 위한 사본입니다.
+
+테이블별 역할과 모든 컬럼의 의미는 [`DB 테이블·컬럼 설명`](docs/database/TABLE_COLUMN_GUIDE.md)을 참고하세요.

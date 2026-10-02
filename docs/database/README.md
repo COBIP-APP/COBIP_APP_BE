@@ -1,5 +1,7 @@
 # COBIP PostgreSQL 스키마 초안
 
+팀원이 테이블과 모든 컬럼의 의미를 확인할 때는 [`TABLE_COLUMN_GUIDE.md`](TABLE_COLUMN_GUIDE.md)를 먼저 읽는다.
+
 [`schema.sql`](schema.sql)은 모바일 앱의 **10개 테이블**을 정의하는 초기 설계 사본이다. Spring Boot는 동일한 초기 스키마를 [`V1__initial_schema.sql`](../../src/main/resources/db/migration/V1__initial_schema.sql)로 Flyway를 통해 빈 개발 DB에 적용한다. 이후 변경은 적용된 V1을 수정하지 않고 새 버전의 마이그레이션에 기록한다. 2026-09-30에 임시 PostgreSQL 16의 빈 DB에 SQL을 적용해 `COMMIT`까지 확인했다. 이어서 관리자 언어·실무 분류 추가, 1/1-1/1-2 목차, 선택 입력 예제 코드, 목차별 문제·학습 재개 위치를 임시 트랜잭션에서 검증했다. 다른 템플릿의 목차에 문제를 연결하려는 시도는 외래 키로 거부되었다. 기존 데이터가 있는 DB에 V1을 적용하지 않는다.
 
 ## ERD 이미지
