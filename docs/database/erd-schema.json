@@ -1,0 +1,1675 @@
+{
+  "source": "schema.sql",
+  "tables": {
+    "users": {
+      "name": "users",
+      "columns": [
+        {
+          "name": "user_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": true,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "email",
+          "data_type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "nickname",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": true,
+          "unique_group": false
+        },
+        {
+          "name": "password_hash",
+          "data_type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "role",
+          "data_type": "VARCHAR(20)",
+          "nullable": false,
+          "default": "'USER'",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "status",
+          "data_type": "VARCHAR(20)",
+          "nullable": false,
+          "default": "'ACTIVE'",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "email_verified",
+          "data_type": "BOOLEAN",
+          "nullable": false,
+          "default": "false",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "service_terms_agreed_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "privacy_terms_agreed_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "profile_media_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": true,
+          "unique_group": false
+        },
+        {
+          "name": "created_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "updated_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "users_pkey",
+          "columns": [
+            "user_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "users_nickname_key",
+          "columns": [
+            "nickname"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "users_profile_media_id_key",
+          "columns": [
+            "profile_media_id"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "users_email_lower_uq",
+          "columns": [
+            "lower(email)"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": true
+        }
+      ]
+    },
+    "languages": {
+      "name": "languages",
+      "columns": [
+        {
+          "name": "language_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": true,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "code",
+          "data_type": "VARCHAR(30)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": true,
+          "unique_group": false
+        },
+        {
+          "name": "name",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": true,
+          "unique_group": false
+        },
+        {
+          "name": "display_order",
+          "data_type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": true,
+          "unique_group": false
+        },
+        {
+          "name": "is_active",
+          "data_type": "BOOLEAN",
+          "nullable": false,
+          "default": "true",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "languages_pkey",
+          "columns": [
+            "language_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "languages_code_key",
+          "columns": [
+            "code"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "languages_name_key",
+          "columns": [
+            "name"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "languages_display_order_key",
+          "columns": [
+            "display_order"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        }
+      ]
+    },
+    "categories": {
+      "name": "categories",
+      "columns": [
+        {
+          "name": "category_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": true,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "parent_category_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "code",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": true,
+          "unique_group": false
+        },
+        {
+          "name": "name",
+          "data_type": "VARCHAR(50)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "display_order",
+          "data_type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "is_active",
+          "data_type": "BOOLEAN",
+          "nullable": false,
+          "default": "true",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "categories_pkey",
+          "columns": [
+            "category_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "categories_code_key",
+          "columns": [
+            "code"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "categories_root_name_uq",
+          "columns": [
+            "name"
+          ],
+          "primary": false,
+          "partial": true,
+          "expression": false
+        },
+        {
+          "name": "categories_child_name_uq",
+          "columns": [
+            "parent_category_id",
+            "name"
+          ],
+          "primary": false,
+          "partial": true,
+          "expression": false
+        },
+        {
+          "name": "categories_root_order_uq",
+          "columns": [
+            "display_order"
+          ],
+          "primary": false,
+          "partial": true,
+          "expression": false
+        },
+        {
+          "name": "categories_child_order_uq",
+          "columns": [
+            "parent_category_id",
+            "display_order"
+          ],
+          "primary": false,
+          "partial": true,
+          "expression": false
+        }
+      ]
+    },
+    "templates": {
+      "name": "templates",
+      "columns": [
+        {
+          "name": "template_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": true,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "category_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "language_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "created_by",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "title",
+          "data_type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "summary",
+          "data_type": "VARCHAR(300)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "description",
+          "data_type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "difficulty",
+          "data_type": "VARCHAR(20)",
+          "nullable": false,
+          "default": "'EASY'",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "display_order",
+          "data_type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "is_published",
+          "data_type": "BOOLEAN",
+          "nullable": false,
+          "default": "false",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "created_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "updated_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "templates_pkey",
+          "columns": [
+            "template_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "templates_display_order_uq",
+          "columns": [
+            "category_id",
+            "language_id",
+            "display_order"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        }
+      ]
+    },
+    "template_sections": {
+      "name": "template_sections",
+      "columns": [
+        {
+          "name": "section_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": true,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "template_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "parent_section_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "title",
+          "data_type": "VARCHAR(150)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "body",
+          "data_type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "example_code",
+          "data_type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "display_order",
+          "data_type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "template_sections_pkey",
+          "columns": [
+            "section_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "template_sections_template_identity_uq",
+          "columns": [
+            "section_id",
+            "template_id"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "template_sections_order_uq",
+          "columns": [
+            "template_id",
+            "parent_section_id",
+            "display_order"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        }
+      ]
+    },
+    "questions": {
+      "name": "questions",
+      "columns": [
+        {
+          "name": "question_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": true,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "category_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "related_template_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "related_section_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "created_by",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "language_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "question_type",
+          "data_type": "VARCHAR(30)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "prompt",
+          "data_type": "TEXT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "code_snippet",
+          "data_type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "choice_options",
+          "data_type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "correct_choice_key",
+          "data_type": "VARCHAR(10)",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "reference_answer",
+          "data_type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "grading_criteria",
+          "data_type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "explanation",
+          "data_type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "difficulty",
+          "data_type": "VARCHAR(20)",
+          "nullable": false,
+          "default": "'EASY'",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "pass_score",
+          "data_type": "SMALLINT",
+          "nullable": false,
+          "default": "70",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "display_order",
+          "data_type": "INTEGER",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": true
+        },
+        {
+          "name": "is_published",
+          "data_type": "BOOLEAN",
+          "nullable": false,
+          "default": "false",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "created_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "updated_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "questions_pkey",
+          "columns": [
+            "question_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "questions_section_order_uq",
+          "columns": [
+            "related_section_id",
+            "display_order"
+          ],
+          "primary": false,
+          "partial": true,
+          "expression": false
+        }
+      ]
+    },
+    "media_files": {
+      "name": "media_files",
+      "columns": [
+        {
+          "name": "media_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": true,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "uploaded_by",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "template_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "section_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "question_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "media_type",
+          "data_type": "VARCHAR(20)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "object_key",
+          "data_type": "VARCHAR(500)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": true,
+          "unique_group": false
+        },
+        {
+          "name": "original_name",
+          "data_type": "VARCHAR(255)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "content_type",
+          "data_type": "VARCHAR(100)",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "file_size",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "alt_text",
+          "data_type": "VARCHAR(300)",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "display_order",
+          "data_type": "INTEGER",
+          "nullable": false,
+          "default": "0",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "created_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "media_files_pkey",
+          "columns": [
+            "media_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        },
+        {
+          "name": "media_files_object_key_key",
+          "columns": [
+            "object_key"
+          ],
+          "primary": false,
+          "partial": false,
+          "expression": false
+        }
+      ]
+    },
+    "submissions": {
+      "name": "submissions",
+      "columns": [
+        {
+          "name": "submission_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": true,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "user_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "question_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "selected_choice_key",
+          "data_type": "VARCHAR(10)",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "answer_text",
+          "data_type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "source_code",
+          "data_type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "grading_status",
+          "data_type": "VARCHAR(20)",
+          "nullable": false,
+          "default": "'PENDING'",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "grading_method",
+          "data_type": "VARCHAR(20)",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "score",
+          "data_type": "NUMERIC(5,2)",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "feedback",
+          "data_type": "TEXT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "criteria_results",
+          "data_type": "JSONB",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "ai_model_version",
+          "data_type": "VARCHAR(100)",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "submitted_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "graded_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "submissions_pkey",
+          "columns": [
+            "submission_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        }
+      ]
+    },
+    "user_progress": {
+      "name": "user_progress",
+      "columns": [
+        {
+          "name": "user_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "template_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "last_section_id",
+          "data_type": "BIGINT",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "started_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "last_studied_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "completed_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": null,
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "user_progress_pkey",
+          "columns": [
+            "user_id",
+            "template_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        }
+      ]
+    },
+    "template_bookmarks": {
+      "name": "template_bookmarks",
+      "columns": [
+        {
+          "name": "user_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "template_id",
+          "data_type": "BIGINT",
+          "nullable": false,
+          "default": null,
+          "identity": false,
+          "primary_key": true,
+          "unique_single": false,
+          "unique_group": false
+        },
+        {
+          "name": "created_at",
+          "data_type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()",
+          "identity": false,
+          "primary_key": false,
+          "unique_single": false,
+          "unique_group": false
+        }
+      ],
+      "unique_keys": [
+        {
+          "name": "template_bookmarks_pkey",
+          "columns": [
+            "user_id",
+            "template_id"
+          ],
+          "primary": true,
+          "partial": false,
+          "expression": false
+        }
+      ]
+    }
+  },
+  "foreign_keys": [
+    {
+      "name": "categories_parent_category_id_fkey",
+      "child_table": "categories",
+      "child_columns": [
+        "parent_category_id"
+      ],
+      "parent_table": "categories",
+      "parent_columns": [
+        "category_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "templates_category_id_fkey",
+      "child_table": "templates",
+      "child_columns": [
+        "category_id"
+      ],
+      "parent_table": "categories",
+      "parent_columns": [
+        "category_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "templates_language_id_fkey",
+      "child_table": "templates",
+      "child_columns": [
+        "language_id"
+      ],
+      "parent_table": "languages",
+      "parent_columns": [
+        "language_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "templates_created_by_fkey",
+      "child_table": "templates",
+      "child_columns": [
+        "created_by"
+      ],
+      "parent_table": "users",
+      "parent_columns": [
+        "user_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "template_sections_template_id_fkey",
+      "child_table": "template_sections",
+      "child_columns": [
+        "template_id"
+      ],
+      "parent_table": "templates",
+      "parent_columns": [
+        "template_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "template_sections_parent_fk",
+      "child_table": "template_sections",
+      "child_columns": [
+        "parent_section_id",
+        "template_id"
+      ],
+      "parent_table": "template_sections",
+      "parent_columns": [
+        "section_id",
+        "template_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "UNIQUE",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "questions_category_id_fkey",
+      "child_table": "questions",
+      "child_columns": [
+        "category_id"
+      ],
+      "parent_table": "categories",
+      "parent_columns": [
+        "category_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "questions_related_template_id_fkey",
+      "child_table": "questions",
+      "child_columns": [
+        "related_template_id"
+      ],
+      "parent_table": "templates",
+      "parent_columns": [
+        "template_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "questions_created_by_fkey",
+      "child_table": "questions",
+      "child_columns": [
+        "created_by"
+      ],
+      "parent_table": "users",
+      "parent_columns": [
+        "user_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "questions_language_id_fkey",
+      "child_table": "questions",
+      "child_columns": [
+        "language_id"
+      ],
+      "parent_table": "languages",
+      "parent_columns": [
+        "language_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "questions_section_template_fk",
+      "child_table": "questions",
+      "child_columns": [
+        "related_section_id",
+        "related_template_id"
+      ],
+      "parent_table": "template_sections",
+      "parent_columns": [
+        "section_id",
+        "template_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "UNIQUE",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "media_files_uploaded_by_fkey",
+      "child_table": "media_files",
+      "child_columns": [
+        "uploaded_by"
+      ],
+      "parent_table": "users",
+      "parent_columns": [
+        "user_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "media_files_template_id_fkey",
+      "child_table": "media_files",
+      "child_columns": [
+        "template_id"
+      ],
+      "parent_table": "templates",
+      "parent_columns": [
+        "template_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "media_files_section_id_fkey",
+      "child_table": "media_files",
+      "child_columns": [
+        "section_id"
+      ],
+      "parent_table": "template_sections",
+      "parent_columns": [
+        "section_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "media_files_question_id_fkey",
+      "child_table": "media_files",
+      "child_columns": [
+        "question_id"
+      ],
+      "parent_table": "questions",
+      "parent_columns": [
+        "question_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "submissions_user_id_fkey",
+      "child_table": "submissions",
+      "child_columns": [
+        "user_id"
+      ],
+      "parent_table": "users",
+      "parent_columns": [
+        "user_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "submissions_question_id_fkey",
+      "child_table": "submissions",
+      "child_columns": [
+        "question_id"
+      ],
+      "parent_table": "questions",
+      "parent_columns": [
+        "question_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "user_progress_user_id_fkey",
+      "child_table": "user_progress",
+      "child_columns": [
+        "user_id"
+      ],
+      "parent_table": "users",
+      "parent_columns": [
+        "user_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "user_progress_template_id_fkey",
+      "child_table": "user_progress",
+      "child_columns": [
+        "template_id"
+      ],
+      "parent_table": "templates",
+      "parent_columns": [
+        "template_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "user_progress_last_section_fk",
+      "child_table": "user_progress",
+      "child_columns": [
+        "last_section_id",
+        "template_id"
+      ],
+      "parent_table": "template_sections",
+      "parent_columns": [
+        "section_id",
+        "template_id"
+      ],
+      "child_nullable": true,
+      "child_unique": false,
+      "parent_key": "UNIQUE",
+      "parent_end": "0..1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "template_bookmarks_user_id_fkey",
+      "child_table": "template_bookmarks",
+      "child_columns": [
+        "user_id"
+      ],
+      "parent_table": "users",
+      "parent_columns": [
+        "user_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "template_bookmarks_template_id_fkey",
+      "child_table": "template_bookmarks",
+      "child_columns": [
+        "template_id"
+      ],
+      "parent_table": "templates",
+      "parent_columns": [
+        "template_id"
+      ],
+      "child_nullable": false,
+      "child_unique": false,
+      "parent_key": "PK",
+      "parent_end": "1",
+      "child_end": "0..N"
+    },
+    {
+      "name": "users_profile_media_fk",
+      "child_table": "users",
+      "child_columns": [
+        "profile_media_id"
+      ],
+      "parent_table": "media_files",
+      "parent_columns": [
+        "media_id"
+      ],
+      "child_nullable": true,
+      "child_unique": true,
+      "parent_key": "PK",
+      "parent_end": "0..1",
+      "child_end": "0..1"
+    }
+  ]
+}

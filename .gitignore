@@ -7,3 +7,5 @@ out/
 .project
 .settings/
 .env
+__pycache__/
+*.pyc
