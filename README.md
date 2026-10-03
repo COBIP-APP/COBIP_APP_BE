@@ -1,6 +1,6 @@
-# COBIP App Backend
+# COBIA App Backend
 
-Spring Boot 기본 실행 프로젝트입니다. 현재는 서버 시작 화면만 제공하며, 개발용 PostgreSQL·Redis와 초기 DB 스키마를 연결했습니다. 앱 표시 이름은 추후 확정합니다.
+Spring Boot 백엔드입니다. 기존 GitHub 저장소명과 Java 패키지명은 유지하고, 사용자에게 보이는 앱 이름은 **COBIA**를 사용합니다. 개발용 PostgreSQL·Redis, 초기 DB 스키마와 인증 API를 포함합니다.
 
 ## 개발 환경
 
@@ -19,7 +19,7 @@ Copy-Item .env.example .env
 docker compose up -d --wait
 ```
 
-그다음 같은 비밀번호를 현재 PowerShell 창의 환경 변수로 지정하고 Java 21로 Spring Boot를 실행합니다. `java -version`이 21이 아니라면, `JAVA_HOME`을 설치된 Java 21 JDK 폴더로 지정하고 그 `bin` 경로를 현재 창의 `Path` 앞에 추가하세요.
+그다음 같은 비밀번호와 **32바이트 이상인 JWT 서명 키**를 현재 PowerShell 창의 환경 변수로 지정하고 Java 21로 Spring Boot를 실행합니다. `java -version`이 21이 아니라면, `JAVA_HOME`을 설치된 Java 21 JDK 폴더로 지정하고 그 `bin` 경로를 현재 창의 `Path` 앞에 추가하세요.
 
 ```powershell
 # Java 21이 기본이 아닐 때만 실행: 실제 설치 폴더로 바꿔 입력
@@ -29,10 +29,13 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 
 ```powershell
 $env:DB_PASSWORD = Read-Host 'DB_PASSWORD (.env 파일과 같은 값)'
+$env:JWT_SECRET_KEY = Read-Host 'JWT_SECRET_KEY (32바이트 이상)'
 .\gradlew.bat bootRun
 ```
 
-처음 시작할 때 Flyway가 빈 PostgreSQL DB에 [`V1__initial_schema.sql`](src/main/resources/db/migration/V1__initial_schema.sql)을 적용합니다. 브라우저에서 `http://localhost:8080/`을 열면 시작 화면을 볼 수 있습니다. Redis는 연결 설정만 준비했으며 인증 코드·토큰 저장 기능은 아직 구현하지 않았습니다.
+처음 시작할 때 Flyway가 빈 PostgreSQL DB에 [`V1__initial_schema.sql`](src/main/resources/db/migration/V1__initial_schema.sql)을 적용합니다. 브라우저에서 `http://localhost:8080/`을 열면 시작 화면을 볼 수 있습니다. Redis는 이메일 인증번호와 재발급 토큰, 로그아웃된 JWT 식별자를 만료 시간과 함께 저장합니다.
+
+이메일 인증번호를 실제로 보내려면 서버 실행 전 `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` 환경 변수를 SMTP 제공자의 값으로 설정하세요. 설정하지 않으면 메일 발송 API는 `503 MAIL_UNAVAILABLE`을 반환하며, 서버 자체는 실행됩니다. SMTP 자격증명이나 JWT 키를 `.env.example`·Git에 넣지 마세요. 프론트 팀원에게 공유할 요청·응답은 [인증 API 계약](docs/auth-api.md)에 있습니다.
 
 DB 상태는 `docker compose ps`로 확인할 수 있습니다. 작업을 마치면 `docker compose down`으로 종료합니다. `down -v`는 PostgreSQL 데이터를 지우므로 평소에는 사용하지 마세요.
 
