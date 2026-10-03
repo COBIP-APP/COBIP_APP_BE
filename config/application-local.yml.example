@@ -1,0 +1,19 @@
+# Copy to application-local.yml in this directory and fill in your own values.
+# application-local.yml is ignored by Git and is NOT packaged inside the JAR.
+spring:
+  datasource:
+    password: '' # Same DB_PASSWORD as the root .env file
+  mail:
+    host: '' # Fill these only when using real email verification
+    port: 587
+    username: ''
+    password: ''
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+app:
+  jwt:
+    secret: '' # Your own fixed random key, at least 32 UTF-8 bytes
+  mail:
+    from: '' # Usually the verified sender email address

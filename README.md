@@ -9,8 +9,8 @@ Flutter 앱 **COBIA**가 사용할 Spring Boot 서버입니다. GitHub 저장소
 1. Java 21과 Docker Desktop을 확인합니다.
 2. `.env`에 자기 PC에서만 쓸 DB 비밀번호를 적습니다.
 3. Docker Compose로 PostgreSQL과 Redis를 켭니다.
-4. 같은 DB 비밀번호와 JWT 서명 키를 PowerShell 환경 변수에 넣습니다.
-5. 인증 메일을 실제로 보낼 경우 SMTP 환경 변수도 넣습니다.
+4. `config/application-local.yml`에 같은 DB 비밀번호와 **한 번 만든 고정 JWT 키**를 적습니다.
+5. 인증 메일을 실제로 보낼 경우 같은 파일에 SMTP 정보를 적습니다.
 6. Spring Boot를 실행합니다.
 
 아래 명령은 **Windows PowerShell에서 이 저장소 폴더**(`C:\COBIP_APP\COBIP_APP_BE`)를 연 상태를 기준으로 합니다. 첫 실행 시 Gradle·Docker 이미지 다운로드가 필요할 수 있습니다.
@@ -64,41 +64,62 @@ docker compose ps
 
 `postgres`와 `redis`가 실행 중이고 정상 상태면 다음 단계로 갑니다. PostgreSQL은 `127.0.0.1:5432`, Redis는 `127.0.0.1:6379`에 연결됩니다. 다른 프로그램이 같은 포트를 쓰면 충돌하므로 해당 프로그램을 종료하거나 `compose.yaml`의 호스트 쪽 포트와 연결 설정을 함께 바꿔야 합니다.
 
-## 4. Spring Boot용 비밀값 설정
+## 4. Spring Boot 로컬 설정 파일 만들기
 
-**같은 PowerShell 창**에서 실행합니다. 2단계 `.env`에 적은 것과 **똑같은 DB 비밀번호**를 입력합니다. `$env:...` 값은 현재 창에만 적용되므로 새 창을 열었다면 다시 설정해야 합니다.
+PowerShell 창을 열 때마다 비밀번호·JWT 키를 입력할 필요는 없습니다. Spring Boot는 기본 `local` 프로필로 실행하고, 저장소 루트의 **`config/application-local.yml`**을 자동으로 읽습니다. 이 파일은 Git에서 제외되며 JAR에도 들어가지 않습니다.
+
+`config/application-local.yml`이 이미 있다면 다음 복사 명령은 건너뛰세요. 파일이 없는 팀원은 예시 파일을 복사합니다.
 
 ```powershell
-$env:DB_PASSWORD = Read-Host '2단계 .env에 적은 DB_PASSWORD'
+Copy-Item config/application-local.yml.example config/application-local.yml
+notepad config/application-local.yml
 ```
 
-JWT 서명 키는 Access Token 위조를 막는 비밀값입니다. 최소 32바이트가 필요합니다. 로컬 실습에서는 아래처럼 무작위 키를 만들어 현재 창에만 넣을 수 있습니다. 서버를 다시 켤 때 새 키를 만들면 **이전 로그인 토큰은 무효**가 됩니다.
+메모장에서 `spring.datasource.password`를 2단계 `.env`의 `DB_PASSWORD`와 **똑같이** 적습니다. `app.jwt.secret`에는 최소 32바이트의 무작위 키를 한 번 만들어 적고 이후 계속 같은 값을 사용합니다. 키 생성이 필요할 때만 아래 명령을 실행하면 마지막 줄에 복사할 문자열이 표시됩니다.
 
 ```powershell
 $jwtBytes = New-Object byte[] 32
 [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($jwtBytes)
-$env:JWT_SECRET_KEY = [Convert]::ToBase64String($jwtBytes)
+[Convert]::ToBase64String($jwtBytes)
 ```
 
-팀 공용/배포 서버에는 매번 새 키를 만들지 말고 운영 환경의 비밀값 저장 수단에 고정된 키를 넣으세요. 키를 README나 `.env.example`에 적어 커밋하지 않습니다.
+생성된 문자열을 `config/application-local.yml`의 `app.jwt.secret`에 붙여 넣습니다. 예를 들면 파일의 구조는 다음과 같습니다. 아래 값은 **실제 비밀번호나 키가 아닌 설명용 예시**입니다.
+
+```yaml
+spring:
+  datasource:
+    password: 'my-local-password'
+app:
+  jwt:
+    secret: '여기에-직접-생성한-32바이트-이상의-키'
+```
+
+`application-local.yml`에서 기존 SMTP 항목은 지우지 말고 필요할 때 채웁니다. DB 비밀번호·JWT 키·SMTP 비밀번호는 README나 Git에 올리지 마세요. 이 파일은 **각 팀원이 자기 PC에 따로** 만듭니다. 배포 서버에서는 이 로컬 파일 대신 환경 변수/비밀값 관리 도구를 사용하고 `prod` 프로필을 지정합니다. [Spring Boot 외부 설정 안내](https://docs.spring.io/spring-boot/3.5/reference/features/external-config.html)
 
 ## 5. 이메일 인증을 사용할 경우: SMTP 설정
 
-회원가입의 6자리 인증번호를 실제 메일로 받으려면 이메일 서비스 제공자가 안내한 SMTP 정보와 발신 계정이 필요합니다. 아래 값은 **형식 예시**이며 그대로 사용하면 전송되지 않습니다.
+회원가입의 6자리 인증번호를 실제 메일로 받으려면 이메일 서비스 제공자가 안내한 SMTP 정보와 발신 계정이 필요합니다. **`config/application-local.yml`의 `spring.mail`과 `app.mail.from`**에 입력합니다. 다음은 형식 예시이며 그대로 사용하면 전송되지 않습니다.
 
-```powershell
-$env:MAIL_HOST = 'smtp.example.com'
-$env:MAIL_PORT = '587'
-$env:MAIL_USERNAME = 'sender@example.com'
-$env:MAIL_PASSWORD = Read-Host 'SMTP 비밀번호 또는 앱 비밀번호'
-$env:MAIL_FROM = 'sender@example.com'
+```yaml
+spring:
+  mail:
+    host: 'smtp.example.com'
+    port: 587
+    username: 'sender@example.com'
+    password: '메일 서비스의 SMTP 비밀번호 또는 앱 비밀번호'
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+app:
+  mail:
+    from: 'sender@example.com'
 ```
 
-SMTP 제공자가 인증 또는 STARTTLS 설정을 달리 지정한다면 `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS_ENABLE`도 그 안내에 맞춰 설정하세요. 기본값은 둘 다 `true`입니다. SMTP 설정이 없어도 서버는 켜지지만 **인증번호 발송 API는 `503 MAIL_UNAVAILABLE`**을 반환하므로 새 회원가입은 완료할 수 없습니다. 인증번호를 서버 로그에 출력하는 우회 기능은 없습니다.
+위 내용을 파일에 **중복으로 추가하지 말고 기존 항목의 값만 바꾸세요.** SMTP 제공자가 인증이나 STARTTLS 사용법을 다르게 안내했다면 해당 `true/false` 값을 그에 맞춰 바꿉니다. SMTP 정보가 없어도 서버는 켜지지만 **인증번호 발송 API는 `503 MAIL_UNAVAILABLE`**을 반환하므로 새 회원가입은 완료할 수 없습니다. 인증번호를 서버 로그에 출력하는 우회 기능은 없습니다.
 
 ## 6. 서버 켜기
 
-DB와 Redis가 실행 중이고 환경 변수를 설정한 **같은 PowerShell 창**에서 실행합니다.
+DB와 Redis가 실행 중이고 로컬 설정 파일을 저장했다면 **저장소 루트 폴더**에서 실행합니다. 매번 환경 변수를 다시 입력할 필요가 없습니다.
 
 ```powershell
 .\gradlew.bat bootRun
@@ -180,8 +201,8 @@ Invoke-RestMethod -Method Post -Uri "$api/logout" -Headers @{ Authorization = "B
 | --- | --- |
 | `25.0.3` 등 Java 버전 관련 Gradle 오류 | `java -version`이 21인지 보고 1단계의 `JAVA_HOME`을 다시 설정 |
 | `DB_PASSWORD`가 없다는 Docker 오류 | `.env` 파일에 `DB_PASSWORD=...`를 저장했는지 확인 |
-| DB 로그인 실패 | PowerShell의 `$env:DB_PASSWORD`와 `.env` 값이 같은지 확인 |
-| `JWT_SECRET_KEY must be at least 32 UTF-8 bytes` | 4단계 JWT 키를 설정한 **같은 창**에서 서버를 실행했는지 확인 |
+| DB 로그인 실패 | `.env`의 `DB_PASSWORD`와 `config/application-local.yml`의 `spring.datasource.password`가 같은지 확인 |
+| `JWT_SECRET_KEY must be at least 32 UTF-8 bytes` | `config/application-local.yml`의 `app.jwt.secret`에 32바이트 이상 키가 있는지, 저장소 루트에서 실행했는지 확인 |
 | `503 MAIL_UNAVAILABLE` | SMTP 서버·포트·발신 주소·계정 비밀번호 확인 |
 | `429 CODE_RATE_LIMITED` | 같은 이메일로 60초 안에 재요청함. 잠시 후 재시도 |
 | `400 INVALID_CODE` | 번호 오입력, 5분 만료 또는 5회 실패. 새 번호 요청 |
