@@ -1,4 +1,4 @@
-package com.cobip.api.catalog;
+package com.cobip.domain.catalog;
 
 import java.util.ArrayList;
 import java.util.Comparator;

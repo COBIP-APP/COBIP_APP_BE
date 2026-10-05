@@ -1,4 +1,4 @@
-package com.cobip.api.common;
+package com.cobip.global.error;
 
 import java.time.Instant;
 
