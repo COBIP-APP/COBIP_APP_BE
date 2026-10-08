@@ -7,5 +7,6 @@ out/
 .project
 .settings/
 .env
+/config/application-local.yml
 __pycache__/
 *.pyc
