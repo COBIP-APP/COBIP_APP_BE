@@ -68,5 +68,5 @@ final user = response.data['user'];
 
 - 로컬 Docker PostgreSQL과 Redis를 연결한 상태에서 SMTP 인증번호 발송, 번호 확인, 신규 회원가입으로 사용자 ID 생성까지 확인했다.
 - 2026-10-08에 로컬 임시 계정으로 로그인 `200`과 Access·Refresh Token 발급, 토큰 재발급 `200`과 Refresh Token 교체, 로그아웃 `204`, 로그아웃한 Refresh Token 재사용 시 `401`을 확인했다. 임시 계정은 확인 직후 삭제했다. Flutter 화면에서의 연결은 아직 확인하지 않았다.
-- 비밀번호 재설정 API는 `feature/password-reset`에서 구현했고 Java 21 컴파일까지 확인했다. 실제 SMTP 발송·비밀번호 변경 호출은 아직 확인하지 않았다. 이 기능은 인증 PR 병합 후 별도 PR로 `develop`에 반영해야 한다.
+- 비밀번호 재설정 API는 `feature/password-reset`에서 구현했다. 2026-10-08에 실제 SMTP 발송 `202`와 임시 계정의 인증번호 확인 `200` → 비밀번호 변경 `204` → 새 비밀번호 로그인 `200`을 확인했다. 재사용한 재설정 토큰 `400`, 이전 비밀번호·Access Token·Refresh Token 거부도 확인했고 임시 계정은 삭제했다. 실제 사용자 계정의 비밀번호는 변경하지 않았다. 이 기능은 인증 PR 병합 후 별도 PR로 `develop`에 반영해야 한다.
 - Flutter 화면 연결과 Dio 추가는 FE 팀 작업이다. 백엔드 팀은 이 문서와 [인증 API 명세](auth-api.md)를 계약으로 공유하고, API 변경 시 두 문서를 함께 수정한다.
