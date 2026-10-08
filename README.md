@@ -193,7 +193,7 @@ Invoke-RestMethod -Method Post -Uri "$api/logout" -Headers @{ Authorization = "B
 - **같은 PC의 Android 에뮬레이터:** 일반적으로 `http://10.0.2.2:8080`. 에뮬레이터 안의 `localhost`는 PC가 아니라 에뮬레이터 자신입니다.
 - **실제 휴대폰:** 휴대폰과 PC가 같은 네트워크일 때 PC의 LAN IP를 사용합니다. 방화벽과 Android의 HTTP 통신 설정도 확인해야 합니다. 외부 배포에는 HTTPS 주소를 사용합니다.
 
-현재 FE 인증 화면은 실제 HTTP 요청을 보내지 않는 **UI 미리보기**입니다. 화면에서 가입/로그인 성공처럼 보여도 백엔드와 연결된 것은 아닙니다. 연결 전에 [FE 인증 화면과 API 차이](docs/auth-fe-alignment.md)를 확인하세요.
+현재 FE 인증 화면은 실제 HTTP 요청을 보내지 않는 **UI 미리보기**입니다. 화면에서 가입/로그인 성공처럼 보여도 백엔드와 연결된 것은 아닙니다. FE 팀에는 [인증 API 명세](docs/auth-api.md)와 [화면별 연결 안내](docs/auth-fe-alignment.md)를 함께 전달하세요.
 
 ## 자주 막히는 부분
 
