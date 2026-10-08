@@ -1,0 +1,65 @@
+package com.cobip.domain.content;
+
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@RequestMapping("/api")
+class ContentController {
+
+    private final ContentRepository contentRepository;
+
+    ContentController(ContentRepository contentRepository) {
+        this.contentRepository = contentRepository;
+    }
+
+    @GetMapping("/templates")
+    List<TemplateSummaryResponse> templates(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long languageId,
+            @RequestParam(defaultValue = "true") boolean publishedOnly
+    ) {
+        return contentRepository.findTemplates(categoryId, languageId, publishedOnly);
+    }
+
+    @GetMapping("/templates/{templateId}")
+    TemplateDetailResponse template(
+            @PathVariable Long templateId,
+            @RequestParam(defaultValue = "true") boolean publishedOnly
+    ) {
+        return contentRepository.findTemplate(templateId, publishedOnly)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Template not found."));
+    }
+
+    @GetMapping("/templates/{templateId}/sections")
+    List<TemplateSectionResponse> templateSections(@PathVariable Long templateId) {
+        return contentRepository.findTemplateSections(templateId);
+    }
+
+    @GetMapping("/questions")
+    List<QuestionResponse> questions(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long languageId,
+            @RequestParam(required = false) Long templateId,
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(defaultValue = "true") boolean publishedOnly
+    ) {
+        return contentRepository.findQuestions(categoryId, languageId, templateId, sectionId, publishedOnly);
+    }
+
+    @GetMapping("/questions/{questionId}")
+    QuestionResponse question(
+            @PathVariable Long questionId,
+            @RequestParam(defaultValue = "true") boolean publishedOnly
+    ) {
+        return contentRepository.findQuestion(questionId, publishedOnly)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found."));
+    }
+}
