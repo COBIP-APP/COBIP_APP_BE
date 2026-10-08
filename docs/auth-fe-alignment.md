@@ -36,6 +36,9 @@ final user = response.data['user'];
 | 로그인 | `POST /api/auth/login` | `email`, `password` | `200`이면 토큰과 `user`를 보관한 뒤 홈으로 이동 |
 | 앱 재실행·Access Token 만료 | `POST /api/auth/refresh` | 가장 최근의 `refreshToken` | `200`이면 **두 토큰을 모두** 새 값으로 교체 |
 | 로그아웃 | `POST /api/auth/logout` | 본문에 `refreshToken`, 헤더에 `Authorization: Bearer <accessToken>` | `204`이면 로컬 토큰을 삭제하고 로그인 화면으로 이동 |
+| 비밀번호 찾기: 인증번호 발송 | `POST /api/auth/password-resets/send` | `email` | `202`면 인증번호 입력 단계로 이동. 미가입 이메일에도 같은 응답 |
+| 비밀번호 찾기: 번호 확인 | `POST /api/auth/password-resets/confirm` | 같은 `email`, 6자리 문자열 `code` | `200`이면 `resetToken`을 메모리에 보관하고 새 비밀번호 화면으로 이동 |
+| 비밀번호 찾기: 비밀번호 변경 | `POST /api/auth/password-resets/complete` | `resetToken`, `newPassword` | `204`이면 완료 화면으로 이동하고 `resetToken`을 지움. 다시 로그인 필요 |
 
 회원가입 때 이메일을 수정하면 이전 인증 완료 표시를 지우고 새 이메일을 다시 인증한다. 번호 확인에 성공한 뒤에도 가입 전에 30분이 지나면 `EMAIL_NOT_VERIFIED`가 반환되므로 인증을 다시 시작한다. 서버는 닉네임 2~50자와 비밀번호 8~64자를 요구한다. 비밀번호 확인 입력은 FE에서 비교하고 요청에는 넣지 않는다. 두 약관 동의값은 실제로 동의한 상태에서만 `true`로 보낸다.
 
@@ -59,10 +62,11 @@ final user = response.data['user'];
 | 비밀번호는 비어 있지 않은지만 확인 | 서버 요구사항인 8~64자 검증과 안내 추가 |
 | 로그인 화면에서 350ms 후 홈으로 이동 | `/login` 성공 후 토큰 저장과 홈 이동 연결 |
 | `go_router`의 보호 화면을 직접 열 수 있음 | 로그인 상태에 따른 보호 경로 이동 제어 연결 |
-| 비밀번호 찾기 화면도 성공을 흉내 냄 | **현재 BE에 비밀번호 재설정 API가 없음.** 별도 API 구현 전에는 실제 비밀번호가 바뀐 것으로 안내하지 않기 |
+| 비밀번호 찾기 화면도 성공을 흉내 냄 | 세 비밀번호 재설정 API를 순서대로 연결. 서버가 반환한 `resetToken`을 새 비밀번호 요청에 사용하고 `204` 이후에만 완료 화면 표시 |
 
 ## 5. 백엔드에서 확인된 것과 남은 경계
 
 - 로컬 Docker PostgreSQL과 Redis를 연결한 상태에서 SMTP 인증번호 발송, 번호 확인, 신규 회원가입으로 사용자 ID 생성까지 확인했다.
 - 2026-10-08에 로컬 임시 계정으로 로그인 `200`과 Access·Refresh Token 발급, 토큰 재발급 `200`과 Refresh Token 교체, 로그아웃 `204`, 로그아웃한 Refresh Token 재사용 시 `401`을 확인했다. 임시 계정은 확인 직후 삭제했다. Flutter 화면에서의 연결은 아직 확인하지 않았다.
+- 비밀번호 재설정 API는 `feature/password-reset`에서 구현했고 Java 21 컴파일까지 확인했다. 실제 SMTP 발송·비밀번호 변경 호출은 아직 확인하지 않았다. 이 기능은 인증 PR 병합 후 별도 PR로 `develop`에 반영해야 한다.
 - Flutter 화면 연결과 Dio 추가는 FE 팀 작업이다. 백엔드 팀은 이 문서와 [인증 API 명세](auth-api.md)를 계약으로 공유하고, API 변경 시 두 문서를 함께 수정한다.

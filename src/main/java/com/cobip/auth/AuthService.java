@@ -167,21 +167,26 @@ class AuthService {
     }
 
     AuthDtos.TokenResponse refresh(String refreshToken) {
-        String userId = redis.opsForValue().getAndDelete(refreshKey(refreshToken));
-        if (userId == null) {
+        String tokenOwner = redis.opsForValue().getAndDelete(refreshKey(refreshToken));
+        if (tokenOwner == null) {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN",
                     "다시 로그인해주세요.");
         }
-        User user = users.findById(Long.valueOf(userId))
+        String[] parts = tokenOwner.split(":", 2);
+        User user = users.findById(Long.valueOf(parts[0]))
                 .orElseThrow(AuthService::invalidCredentials);
-        if (!"ACTIVE".equals(user.getStatus())) throw invalidCredentials();
+        long tokenVersion = parts.length == 2 ? Long.parseLong(parts[1]) : 0;
+        if (!"ACTIVE".equals(user.getStatus()) || user.getAuthVersion() != tokenVersion) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN",
+                    "다시 로그인해주세요.");
+        }
         return issueTokens(user);
     }
 
     void logout(Jwt accessToken, String refreshToken) {
         String key = refreshKey(refreshToken);
         String refreshOwner = redis.opsForValue().get(key);
-        if (refreshOwner != null && !refreshOwner.equals(accessToken.getSubject())) {
+        if (refreshOwner != null && !refreshOwner.split(":", 2)[0].equals(accessToken.getSubject())) {
             throw new AuthException(HttpStatus.FORBIDDEN, "INVALID_REFRESH_TOKEN",
                     "다른 계정의 토큰입니다.");
         }
@@ -197,18 +202,20 @@ class AuthService {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(jwtIssuer).subject(user.getId().toString())
                 .issuedAt(now).expiresAt(now.plus(ACCESS_TTL))
-                .id(UUID.randomUUID().toString()).claim("role", user.getRole()).build();
+                .id(UUID.randomUUID().toString()).claim("role", user.getRole())
+                .claim("authVersion", user.getAuthVersion()).build();
         String accessToken = jwtEncoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
         byte[] randomBytes = new byte[32];
         RANDOM.nextBytes(randomBytes);
         String refreshToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
-        redis.opsForValue().set(refreshKey(refreshToken), user.getId().toString(), REFRESH_TTL);
+        redis.opsForValue().set(refreshKey(refreshToken),
+                user.getId() + ":" + user.getAuthVersion(), REFRESH_TTL);
         return new AuthDtos.TokenResponse(accessToken, refreshToken, "Bearer", 900,
                 AuthDtos.UserResponse.of(user));
     }
 
-    private static String normalizedEmail(String email) {
+    static String normalizedEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 
@@ -216,7 +223,7 @@ class AuthService {
         return "auth:refresh:" + digest(token);
     }
 
-    private static String digest(String value) {
+    static String digest(String value) {
         try {
             byte[] bytes = MessageDigest.getInstance("SHA-256")
                     .digest(value.getBytes(StandardCharsets.UTF_8));
