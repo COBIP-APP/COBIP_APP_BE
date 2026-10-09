@@ -13,6 +13,8 @@
 
 Flutter 팀은 **기본 주소 한 곳만 환경별로 변경**하고, API 호출은 `Dio` 인스턴스 하나로 관리한다. 예를 들어 로컬 Android 에뮬레이터에서는 `baseUrl`을 `http://10.0.2.2:8080`으로 설정한 뒤 `POST /api/auth/login`을 호출한다. 현재 FE `pubspec.yaml`에는 `dio`가 없으므로 FE 담당자가 의존성을 추가해야 한다. 로컬 `http://` 통신이 Android에서 막히면 FE 담당자가 디버그 빌드의 네트워크 설정을 확인한다. 배포 주소와 SMTP·DB·JWT 비밀값은 Flutter 앱에 넣지 않는다.
 
+백엔드를 각자 실행할 팀원은 [README의 Docker 전체 실행 안내](../README.md#flutter-팀원-docker로-서버까지-한-번에-실행)를 따른다. 다른 팀원의 PC에서 실행 중인 백엔드에 연결한다면 `10.0.2.2` 대신 **그 백엔드 PC의 LAN 주소**를 사용한다. API 목록과 요청 형식은 실행 중인 백엔드의 `/swagger-ui.html`에서 볼 수 있다.
+
 FE 팀이 구현할 최소 호출 형태는 아래와 같다. 이는 안내 예시이며 BE 저장소에 Flutter 코드를 추가하지 않는다. `data`의 필드명은 [계약 문서](auth-api.md)와 같아야 한다. Dio의 `BaseOptions`·`post` 사용법은 [공식 패키지 문서](https://pub.dev/packages/dio)를 참고한다.
 
 ```dart

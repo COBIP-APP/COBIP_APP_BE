@@ -6,7 +6,7 @@ Flutter 앱 **COBIA**가 사용할 Spring Boot 서버입니다. GitHub 저장소
 
 ## 처음 실행할 때: 전체 순서
 
-1. Java 21과 Docker Desktop을 확인합니다.
+1. Java 21과 Docker Desktop을 확인합니다. Spring까지 Docker로 실행할 팀원은 Java 설치가 필요 없습니다.
 2. `.env`에 자기 PC에서만 쓸 DB 비밀번호를 적습니다.
 3. Docker Compose로 PostgreSQL과 Redis를 켭니다.
 4. `config/application-local.yml`에 같은 DB 비밀번호와 **한 번 만든 고정 JWT 키**를 적습니다.
@@ -62,7 +62,7 @@ docker compose up -d --wait
 docker compose ps
 ```
 
-`postgres`와 `redis`가 실행 중이고 정상 상태면 다음 단계로 갑니다. PostgreSQL은 `127.0.0.1:5432`, Redis는 `127.0.0.1:6379`에 연결됩니다. 다른 프로그램이 같은 포트를 쓰면 충돌하므로 해당 프로그램을 종료하거나 `compose.yaml`의 호스트 쪽 포트와 연결 설정을 함께 바꿔야 합니다.
+`postgres`와 `redis`가 실행 중이고 정상 상태면 다음 단계로 갑니다. 이 명령은 Spring 서버를 켜지 않습니다. PostgreSQL은 `127.0.0.1:5432`, Redis는 `127.0.0.1:6379`에 연결됩니다. 다른 프로그램이 같은 포트를 쓰면 충돌하므로 해당 프로그램을 종료하거나 `compose.yaml`의 호스트 쪽 포트와 연결 설정을 함께 바꿔야 합니다.
 
 ## 4. Spring Boot 로컬 설정 파일 만들기
 
@@ -128,6 +128,30 @@ DB와 Redis가 실행 중이고 로컬 설정 파일을 저장했다면 **저장
 처음에는 Gradle 파일을 다운로드하느라 시간이 걸릴 수 있습니다. `Started CobipApplication`이 보이면 서버가 켜진 것입니다. 브라우저에서 [http://localhost:8080/](http://localhost:8080/)을 열어 시작 화면을 확인하세요. 이 창을 닫거나 `Ctrl+C`를 누르면 서버도 종료됩니다.
 
 빈 PostgreSQL DB를 처음 실행할 때 Flyway가 [`V1__initial_schema.sql`](src/main/resources/db/migration/V1__initial_schema.sql)을 적용해 테이블을 만듭니다. 다음 실행부터는 같은 마이그레이션을 중복 실행하지 않습니다. 기존 데이터가 담긴 다른 DB에 V1을 그대로 적용하지 마세요.
+
+### Flutter 팀원: Docker로 서버까지 한 번에 실행
+
+이 방식은 위의 **6단계 `bootRun` 대신** 사용합니다. Docker Desktop과 Git만 설치하면 되고, Java 21은 Docker 이미지 안에서 사용합니다. 현재 백엔드 저장소는 공개 상태라 코드를 받는 데 초대가 필요하지 않습니다. `main`에는 시작 README만 있으므로 `develop`을 받습니다. **백엔드 팀이 접근 가능한 공동 개발 서버를 켜둔 경우에는** Flutter 팀원이 이 저장소나 Docker를 설치할 필요 없이 서버 주소와 Swagger 주소만 받으면 됩니다.
+
+```powershell
+git clone --branch develop https://github.com/COBIP-APP/COBIP_APP_BE.git
+cd COBIP_APP_BE
+Copy-Item .env.example .env
+Copy-Item config/application-local.yml.example config/application-local.yml
+```
+
+이미 파일이 있다면 복사 명령으로 덮어쓰지 마세요. `.env`의 `DB_PASSWORD`를 정하고, `config/application-local.yml`에 **같은 DB 비밀번호**와 32바이트 이상 JWT 키를 넣습니다. 새 계정의 이메일 인증을 직접 시험하려면 각자의 SMTP 설정도 넣어야 합니다. 비밀번호 재설정은 해당 PR이 `develop`에 병합된 뒤 사용할 수 있습니다. 두 파일은 Git에 올라가지 않으며, 로컬 설정 파일은 컨테이너 안에서 읽기 전용으로 사용됩니다. 비밀번호 입력 방법과 JWT 키 생성은 위의 **2·4·5단계**를 참고하세요.
+
+```powershell
+docker compose --profile full up -d --build --wait
+docker compose ps
+```
+
+처음에는 Java 빌드와 이미지 다운로드로 시간이 걸립니다. `app`, `postgres`, `redis`가 실행 중이면 PC 브라우저에서 [Swagger UI](http://localhost:8080/swagger-ui.html)를 열어보세요. `app`이 종료되거나 페이지가 열리지 않으면 `docker compose logs app`에서 서버 오류를 확인합니다. **이 방식과 `bootRun`을 동시에 사용하면 8080 포트가 충돌**합니다. 코드를 새로 받았을 때는 `git pull origin develop` 후 위 `--build` 명령을 다시 실행합니다.
+
+같은 PC의 Android 에뮬레이터는 `http://10.0.2.2:8080`으로 접속합니다. 다른 PC나 실제 휴대폰에서 접속해야 한다면 서버를 실행하는 PC의 `.env`에 `APP_BIND_ADDRESS=0.0.0.0`을 추가하고 다시 실행한 뒤 `http://<서버 PC의 LAN IP>:8080`을 사용합니다. 두 기기가 같은 네트워크에 있어야 하며 Windows 방화벽이 8080 포트를 허용해야 합니다. 실제 배포에는 HTTPS 주소를 사용하세요.
+
+종료할 때는 `docker compose --profile full down`을 사용합니다. `-v`를 붙이지 않으면 PostgreSQL 데이터는 유지됩니다. 각자 실행한 Docker DB는 **서로 다른 데이터**이므로 다른 팀원의 계정이 자동으로 생기지는 않습니다.
 
 ## 7. 인증 API 호출 예시
 
