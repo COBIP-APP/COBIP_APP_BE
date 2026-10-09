@@ -1,5 +1,6 @@
 package com.cobip.domain.activity;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api")
 class ActivityController {
 

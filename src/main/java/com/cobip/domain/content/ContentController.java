@@ -1,5 +1,6 @@
 package com.cobip.domain.content;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api")
 class ContentController {
 
