@@ -1,137 +1,10 @@
-# COBIA 앱 백엔드
+# COBIA 백엔드
 
-Flutter 앱 **COBIA**가 사용할 Spring Boot 서버입니다. GitHub 저장소명과 Java 패키지명에는 기존 `COBIP` 표기가 남아 있지만, 사용자에게 보이는 앱 이름은 COBIA입니다. PostgreSQL·Redis와 인증 API를 포함합니다. **현재 Flutter 인증 화면은 서버에 연결되지 않은 UI 미리보기**입니다.
+COBIA Flutter 앱의 Spring Boot API입니다. 로컬 개발에서는 Docker Compose로 Spring Boot·PostgreSQL·Redis를 각자 PC에서 실행합니다. API 목록은 서버를 켠 뒤 [Swagger UI](http://localhost:8080/swagger-ui.html)에서 확인합니다.
 
-처음 보는 팀원을 위한 용어 정리: **Spring Boot**는 앱의 요청을 받는 서버, **PostgreSQL**은 회원 정보를 오래 보관하는 DB, **Redis**는 몇 분 동안만 필요한 인증번호와 로그인 재발급 토큰을 보관하는 저장소, **SMTP**는 인증 메일을 보내는 통신 설정입니다. **JWT**는 로그인 후 보호된 API를 호출할 때 사용하는 서명된 Access Token입니다.
+## Flutter 팀원: 처음 실행
 
-## 처음 실행할 때: 전체 순서
-
-1. Java 21과 Docker Desktop을 확인합니다. Spring까지 Docker로 실행할 팀원은 Java 설치가 필요 없습니다.
-2. `.env`에 자기 PC에서만 쓸 DB 비밀번호를 적습니다.
-3. Docker Compose로 PostgreSQL과 Redis를 켭니다.
-4. `config/application-local.yml`에 같은 DB 비밀번호와 **한 번 만든 고정 JWT 키**를 적습니다.
-5. 인증 메일을 실제로 보낼 경우 같은 파일에 SMTP 정보를 적습니다.
-6. Spring Boot를 실행합니다.
-
-아래 명령은 **Windows PowerShell에서 이 저장소 폴더**(`C:\COBIP_APP\COBIP_APP_BE`)를 연 상태를 기준으로 합니다. 첫 실행 시 Gradle·Docker 이미지 다운로드가 필요할 수 있습니다.
-
-## 1. 필요한 프로그램 확인
-
-PowerShell에서 다음 명령을 각각 실행합니다.
-
-```powershell
-java -version
-docker --version
-docker compose version
-```
-
-Java 버전은 **21**이어야 합니다. 다른 버전이 표시되면 이 PowerShell 창에서만 Java 21을 선택합니다. 경로는 설치 위치에 맞게 바꾸세요.
-
-```powershell
-$env:JAVA_HOME = 'C:\Program Files\Java\jdk-21.0.10'
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"
-java -version
-```
-
-Docker Desktop도 실행합니다. `docker ps`가 오류 없이 빈 목록이라도 보여주면 Docker 엔진은 켜진 것입니다. 프로젝트 DB와 Redis는 다음 단계에서 별도 실행합니다.
-
-## 2. 로컬 DB 비밀번호 준비
-
-저장소 폴더로 이동해 예시 파일을 복사합니다. 이미 `.env`가 있다면 덮어쓰지 마세요.
-
-```powershell
-cd C:\COBIP_APP\COBIP_APP_BE
-Copy-Item .env.example .env
-notepad .env
-```
-
-메모장에서 첫 줄을 다음처럼 수정하고 저장합니다. `my-local-password`는 자신이 정한 값으로 바꿉니다. 팀원마다 다른 값을 써도 됩니다.
-
-```dotenv
-DB_PASSWORD=my-local-password
-```
-
-`.env`는 **Docker Compose가 PostgreSQL을 만들 때** 읽습니다. Git에서는 제외됩니다. 비밀번호를 채팅·커밋·스크린샷에 공개하지 마세요. 이미 생성한 DB의 비밀번호는 `.env`만 수정해도 자동으로 바뀌지 않습니다. 기존 데이터를 유지하면서 바꾸려면 PostgreSQL 계정 비밀번호도 변경해야 합니다.
-
-## 3. PostgreSQL·Redis 실행
-
-Docker Desktop이 켜진 상태에서 저장소 폴더에서 실행합니다.
-
-```powershell
-docker compose up -d --wait
-docker compose ps
-```
-
-`postgres`와 `redis`가 실행 중이고 정상 상태면 다음 단계로 갑니다. 이 명령은 Spring 서버를 켜지 않습니다. PostgreSQL은 `127.0.0.1:5432`, Redis는 `127.0.0.1:6379`에 연결됩니다. 다른 프로그램이 같은 포트를 쓰면 충돌하므로 해당 프로그램을 종료하거나 `compose.yaml`의 호스트 쪽 포트와 연결 설정을 함께 바꿔야 합니다.
-
-## 4. Spring Boot 로컬 설정 파일 만들기
-
-PowerShell 창을 열 때마다 비밀번호·JWT 키를 입력할 필요는 없습니다. Spring Boot는 기본 `local` 프로필로 실행하고, 저장소 루트의 **`config/application-local.yml`**을 자동으로 읽습니다. 이 파일은 Git에서 제외되며 JAR에도 들어가지 않습니다.
-
-`config/application-local.yml`이 이미 있다면 다음 복사 명령은 건너뛰세요. 파일이 없는 팀원은 예시 파일을 복사합니다.
-
-```powershell
-Copy-Item config/application-local.yml.example config/application-local.yml
-notepad config/application-local.yml
-```
-
-메모장에서 `spring.datasource.password`를 2단계 `.env`의 `DB_PASSWORD`와 **똑같이** 적습니다. `app.jwt.secret`에는 최소 32바이트의 무작위 키를 한 번 만들어 적고 이후 계속 같은 값을 사용합니다. 키 생성이 필요할 때만 아래 명령을 실행하면 마지막 줄에 복사할 문자열이 표시됩니다.
-
-```powershell
-$jwtBytes = New-Object byte[] 32
-[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($jwtBytes)
-[Convert]::ToBase64String($jwtBytes)
-```
-
-생성된 문자열을 `config/application-local.yml`의 `app.jwt.secret`에 붙여 넣습니다. 예를 들면 파일의 구조는 다음과 같습니다. 아래 값은 **실제 비밀번호나 키가 아닌 설명용 예시**입니다.
-
-```yaml
-spring:
-  datasource:
-    password: 'my-local-password'
-app:
-  jwt:
-    secret: '여기에-직접-생성한-32바이트-이상의-키'
-```
-
-`application-local.yml`에서 기존 SMTP 항목은 지우지 말고 필요할 때 채웁니다. DB 비밀번호·JWT 키·SMTP 비밀번호는 README나 Git에 올리지 마세요. 이 파일은 **각 팀원이 자기 PC에 따로** 만듭니다. 배포 서버에서는 이 로컬 파일 대신 환경 변수/비밀값 관리 도구를 사용하고 `prod` 프로필을 지정합니다. [Spring Boot 외부 설정 안내](https://docs.spring.io/spring-boot/3.5/reference/features/external-config.html)
-
-## 5. 이메일 인증을 사용할 경우: SMTP 설정
-
-회원가입의 6자리 인증번호를 실제 메일로 받으려면 이메일 서비스 제공자가 안내한 SMTP 정보와 발신 계정이 필요합니다. **`config/application-local.yml`의 `spring.mail`과 `app.mail.from`**에 입력합니다. 다음은 형식 예시이며 그대로 사용하면 전송되지 않습니다.
-
-```yaml
-spring:
-  mail:
-    host: 'smtp.example.com'
-    port: 587
-    username: 'sender@example.com'
-    password: '메일 서비스의 SMTP 비밀번호 또는 앱 비밀번호'
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
-app:
-  mail:
-    from: 'sender@example.com'
-```
-
-위 내용을 파일에 **중복으로 추가하지 말고 기존 항목의 값만 바꾸세요.** SMTP 제공자가 인증이나 STARTTLS 사용법을 다르게 안내했다면 해당 `true/false` 값을 그에 맞춰 바꿉니다. SMTP 정보가 없어도 서버는 켜지지만 **인증번호 발송 API는 `503 MAIL_UNAVAILABLE`**을 반환하므로 새 회원가입은 완료할 수 없습니다. 인증번호를 서버 로그에 출력하는 우회 기능은 없습니다.
-
-## 6. 서버 켜기
-
-DB와 Redis가 실행 중이고 로컬 설정 파일을 저장했다면 **저장소 루트 폴더**에서 실행합니다. 매번 환경 변수를 다시 입력할 필요가 없습니다.
-
-```powershell
-.\gradlew.bat bootRun
-```
-
-처음에는 Gradle 파일을 다운로드하느라 시간이 걸릴 수 있습니다. `Started CobipApplication`이 보이면 서버가 켜진 것입니다. 브라우저에서 [http://localhost:8080/](http://localhost:8080/)을 열어 시작 화면을 확인하세요. 이 창을 닫거나 `Ctrl+C`를 누르면 서버도 종료됩니다.
-
-빈 PostgreSQL DB를 처음 실행할 때 Flyway가 [`V1__initial_schema.sql`](src/main/resources/db/migration/V1__initial_schema.sql)을 적용해 테이블을 만듭니다. 다음 실행부터는 같은 마이그레이션을 중복 실행하지 않습니다. 기존 데이터가 담긴 다른 DB에 V1을 그대로 적용하지 마세요.
-
-### Flutter 팀원: Docker로 서버까지 한 번에 실행
-
-이 방식은 위의 **6단계 `bootRun` 대신** 사용합니다. Docker Desktop과 Git만 설치하면 되고, Java 21은 Docker 이미지 안에서 사용합니다. 현재 백엔드 저장소는 공개 상태라 코드를 받는 데 초대가 필요하지 않습니다. `main`에는 시작 README만 있으므로 `develop`을 받습니다. **백엔드 팀이 접근 가능한 공동 개발 서버를 켜둔 경우에는** Flutter 팀원이 이 저장소나 Docker를 설치할 필요 없이 서버 주소와 Swagger 주소만 받으면 됩니다.
+**필요한 것:** Git, Docker Desktop. Java는 Docker 이미지 안에서 실행되므로 별도 설치하지 않아도 됩니다. Windows PowerShell 기준입니다. 저장소는 현재 공개되어 있어 내려받기 권한을 따로 받을 필요가 없습니다.
 
 ```powershell
 git clone --branch develop https://github.com/COBIP-APP/COBIP_APP_BE.git
@@ -140,111 +13,61 @@ Copy-Item .env.example .env
 Copy-Item config/application-local.yml.example config/application-local.yml
 ```
 
-이미 파일이 있다면 복사 명령으로 덮어쓰지 마세요. `.env`의 `DB_PASSWORD`를 정하고, `config/application-local.yml`에 **같은 DB 비밀번호**와 32바이트 이상 JWT 키를 넣습니다. 새 계정의 이메일 인증을 직접 시험하려면 각자의 SMTP 설정도 넣어야 합니다. 비밀번호 재설정은 해당 PR이 `develop`에 병합된 뒤 사용할 수 있습니다. 두 파일은 Git에 올라가지 않으며, 로컬 설정 파일은 컨테이너 안에서 읽기 전용으로 사용됩니다. 비밀번호 입력 방법과 JWT 키 생성은 위의 **2·4·5단계**를 참고하세요.
+이미 저장소나 설정 파일이 있다면 다시 복사해 덮어쓰지 마세요. 다음 두 파일은 **처음 한 번만** 설정합니다.
+
+1. `.env`의 `DB_PASSWORD`에 자신의 로컬 PostgreSQL 비밀번호를 적습니다.
+2. `config/application-local.yml`의 `app.jwt.secret`에 32바이트 이상의 키를 적습니다. 키를 매번 바꾸는 것이 아니라 **한 번 만든 값을 계속 사용**합니다. 각자 DB와 서버를 따로 쓰므로 팀원 간 같은 키일 필요는 없습니다. 기존에 만든 로컬 설정 파일이 있으면 그 키를 그대로 사용하세요.
+
+키가 없다면 PowerShell에서 한 번 생성해 결과를 `app.jwt.secret`에 붙여 넣습니다.
+
+```powershell
+$bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); [Convert]::ToBase64String($bytes)
+```
+
+Docker 실행에서는 DB 비밀번호를 `config/application-local.yml`에 또 적지 않아도 됩니다. Compose가 `.env`의 값을 Spring에 전달합니다. 회원가입 이메일 인증이나 비밀번호 재설정을 시험하려면 같은 설정 파일의 `spring.mail`과 `app.mail.from`에 자신의 SMTP 발신 정보를 입력해야 합니다. 비워두면 서버는 켜지지만 메일 발송 API는 `503 MAIL_UNAVAILABLE`을 반환합니다. **`.env`와 `config/application-local.yml`은 Git에 올라가지 않으며, 팀원에게 비밀값을 보내지 않습니다.**
+
+Docker Desktop을 켠 뒤 저장소 폴더에서 실행합니다.
 
 ```powershell
 docker compose --profile full up -d --build --wait
 docker compose ps
 ```
 
-처음에는 Java 빌드와 이미지 다운로드로 시간이 걸립니다. `app`, `postgres`, `redis`가 실행 중이면 PC 브라우저에서 [Swagger UI](http://localhost:8080/swagger-ui.html)를 열어보세요. `app`이 종료되거나 페이지가 열리지 않으면 `docker compose logs app`에서 서버 오류를 확인합니다. **이 방식과 `bootRun`을 동시에 사용하면 8080 포트가 충돌**합니다. 코드를 새로 받았을 때는 `git pull origin develop` 후 위 `--build` 명령을 다시 실행합니다.
+`app`, `postgres`, `redis`가 실행 중이면 [Swagger UI](http://localhost:8080/swagger-ui.html)를 엽니다. 앱을 새로 받은 뒤에는 `git pull origin develop`을 하고 위의 `--build` 명령을 다시 실행하세요. 서버 오류는 `docker compose logs app`에서 확인합니다.
 
-같은 PC의 Android 에뮬레이터는 `http://10.0.2.2:8080`으로 접속합니다. 다른 PC나 실제 휴대폰에서 접속해야 한다면 서버를 실행하는 PC의 `.env`에 `APP_BIND_ADDRESS=0.0.0.0`을 추가하고 다시 실행한 뒤 `http://<서버 PC의 LAN IP>:8080`을 사용합니다. 두 기기가 같은 네트워크에 있어야 하며 Windows 방화벽이 8080 포트를 허용해야 합니다. 실제 배포에는 HTTPS 주소를 사용하세요.
+## Flutter에서 접속
 
-종료할 때는 `docker compose --profile full down`을 사용합니다. `-v`를 붙이지 않으면 PostgreSQL 데이터는 유지됩니다. 각자 실행한 Docker DB는 **서로 다른 데이터**이므로 다른 팀원의 계정이 자동으로 생기지는 않습니다.
-
-## 7. 인증 API 호출 예시
-
-서버를 실행하는 창은 그대로 두고 **새 PowerShell 창**을 엽니다. 아래 이메일을 자신이 메일을 받을 수 있는 주소로 바꿉니다.
-
-```powershell
-$api = 'http://localhost:8080/api/auth'
-$email = 'student@example.com'
-$body = @{ email = $email } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri "$api/email-verifications/send" -ContentType 'application/json; charset=utf-8' -Body $body
-```
-
-성공하면 `202` 응답에 `expiresInSeconds: 300`, `resendAfterSeconds: 60`이 포함됩니다. 메일로 받은 실제 6자리 번호를 넣어 확인합니다.
-
-```powershell
-$code = Read-Host '메일로 받은 6자리 인증번호'
-$body = @{ email = $email; code = $code } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri "$api/email-verifications/confirm" -ContentType 'application/json; charset=utf-8' -Body $body
-```
-
-가입에는 닉네임, 비밀번호(8~64자), 필수 약관 동의 두 항목이 필요합니다. 아래 예시의 비밀번호와 닉네임은 직접 정합니다. **실제 약관 내용을 확인하고 동의했을 때만** 두 값을 `true`로 보내세요.
-
-```powershell
-$nickname = Read-Host '닉네임(2~50자)'
-$password = Read-Host '가입할 비밀번호(8~64자)'
-$body = @{
-  email = $email
-  nickname = $nickname
-  password = $password
-  serviceTermsAgreed = $true
-  privacyTermsAgreed = $true
-} | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri "$api/register" -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($body))
-```
-
-가입에 성공했으면 같은 이메일·비밀번호로 로그인합니다. 로그인 응답에는 **Access Token과 Refresh Token**이 함께 들어옵니다.
-
-```powershell
-$body = @{ email = $email; password = $password } | ConvertTo-Json
-$login = Invoke-RestMethod -Method Post -Uri "$api/login" -ContentType 'application/json; charset=utf-8' -Body $body
-$login.user
-```
-
-보호된 API를 호출할 때는 `Authorization: Bearer <accessToken>` 헤더를 붙입니다. Access Token은 15분 유효합니다. 만료 전에 또는 만료 후 로그인 상태를 이어가려면 Refresh Token으로 두 토큰을 새로 받습니다. 기존 Refresh Token은 이 요청 직후 폐기됩니다.
-
-```powershell
-$body = @{ refreshToken = $login.refreshToken } | ConvertTo-Json
-$login = Invoke-RestMethod -Method Post -Uri "$api/refresh" -ContentType 'application/json; charset=utf-8' -Body $body
-```
-
-로그아웃은 현재 Access Token과 **가장 최근에 받은 Refresh Token**을 함께 보냅니다. 성공 응답은 내용 없는 `204`입니다.
-
-```powershell
-$body = @{ refreshToken = $login.refreshToken } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri "$api/logout" -Headers @{ Authorization = "Bearer $($login.accessToken)" } -ContentType 'application/json; charset=utf-8' -Body $body
-```
-
-위 PowerShell 변수에는 실행 중 토큰·비밀번호가 들어 있으므로 공용 PC라면 창을 닫고, 값을 복사해 채팅이나 커밋에 남기지 마세요. 전체 요청·응답과 오류 코드는 [인증 API 계약](docs/auth-api.md)을 보세요.
-
-## Swagger API 문서
-
-서버를 켠 뒤 [Swagger UI](http://localhost:8080/swagger-ui.html)에서 현재 브랜치의 API 목록, 요청 형식, 응답 형식을 확인하고 직접 호출할 수 있습니다. OpenAPI 원본은 [JSON 문서](http://localhost:8080/v3/api-docs)에서 확인합니다. 로그인 후 보호된 API를 시험할 때는 화면의 **Authorize**에 Access Token을 넣습니다. Swagger는 API 형태를 보여주고, 인증번호·토큰을 어떤 순서로 사용하는지는 [인증 API 계약](docs/auth-api.md)과 [Flutter 화면 연결 안내](docs/auth-fe-alignment.md)를 따릅니다. 외부 공개 서버에서는 `SWAGGER_ENABLED=false`로 두 문서 화면을 끄세요.
-
-## Flutter 앱에서 접속할 때
-
-- **PC의 PowerShell/브라우저:** `http://localhost:8080`.
-- **같은 PC의 Android 에뮬레이터:** 일반적으로 `http://10.0.2.2:8080`. 에뮬레이터 안의 `localhost`는 PC가 아니라 에뮬레이터 자신입니다.
-- **실제 휴대폰:** 휴대폰과 PC가 같은 네트워크일 때 PC의 LAN IP를 사용합니다. 방화벽과 Android의 HTTP 통신 설정도 확인해야 합니다. 외부 배포에는 HTTPS 주소를 사용합니다.
-
-현재 FE 인증 화면은 실제 HTTP 요청을 보내지 않는 **UI 미리보기**입니다. 화면에서 가입/로그인 성공처럼 보여도 백엔드와 연결된 것은 아닙니다. FE 팀에는 [인증 API 명세](docs/auth-api.md)와 [화면별 연결 안내](docs/auth-fe-alignment.md)를 함께 전달하세요.
-
-## 자주 막히는 부분
-
-| 증상 | 확인할 곳 |
+| 실행 위치 | API 기본 주소 |
 | --- | --- |
-| `25.0.3` 등 Java 버전 관련 Gradle 오류 | `java -version`이 21인지 보고 1단계의 `JAVA_HOME`을 다시 설정 |
-| `DB_PASSWORD`가 없다는 Docker 오류 | `.env` 파일에 `DB_PASSWORD=...`를 저장했는지 확인 |
-| DB 로그인 실패 | `.env`의 `DB_PASSWORD`와 `config/application-local.yml`의 `spring.datasource.password`가 같은지 확인 |
-| `JWT_SECRET_KEY must be at least 32 UTF-8 bytes` | `config/application-local.yml`의 `app.jwt.secret`에 32바이트 이상 키가 있는지, 저장소 루트에서 실행했는지 확인 |
-| `503 MAIL_UNAVAILABLE` | SMTP 서버·포트·발신 주소·계정 비밀번호 확인 |
-| `429 CODE_RATE_LIMITED` | 같은 이메일로 60초 안에 재요청함. 잠시 후 재시도 |
-| `400 INVALID_CODE` | 번호 오입력, 5분 만료 또는 5회 실패. 새 번호 요청 |
-| `401 UNAUTHORIZED` | Access Token이 없거나 만료/로그아웃됨. 로그인 또는 토큰 재발급 필요 |
-| `Connection refused` 또는 포트 충돌 | `docker compose ps`, Docker Desktop, 5432/6379/8080 포트 사용 여부 확인 |
+| PC 브라우저·PowerShell | `http://localhost:8080` |
+| **같은 PC의 Android 에뮬레이터** | `http://10.0.2.2:8080` |
 
-## 종료와 데이터 보관
+Flutter 팀은 Dio의 `baseUrl`을 Android 에뮬레이터 기준으로 설정합니다. 예를 들어 로그인 경로는 `POST /api/auth/login`입니다. 각 팀원이 띄운 PostgreSQL은 **서로 다른 로컬 DB**이므로 다른 PC에서 가입한 계정은 내 PC에 자동으로 생기지 않습니다. 실제 휴대폰이나 다른 PC에서 접속할 때만 `.env`에 `APP_BIND_ADDRESS=0.0.0.0`을 추가하고 백엔드 PC의 LAN IP와 방화벽 설정을 확인하세요.
 
-Spring Boot 창에서 `Ctrl+C`로 서버를 종료합니다. DB와 Redis도 끄려면 저장소 폴더에서 다음을 실행합니다.
+요청·응답 필드는 Swagger에서, 인증번호 → 회원가입 → 로그인 → 토큰 재발급의 호출 순서는 [인증 API 명세](docs/auth-api.md)와 [Flutter 연결 안내](docs/auth-fe-alignment.md)에서 확인합니다. 비밀번호 재설정 API는 해당 PR이 `develop`에 병합된 뒤 Swagger에도 나타납니다.
+
+## 백엔드 팀원: Spring을 직접 실행할 때
+
+Java 21로 코드를 수정하며 실행하려면 Docker에는 DB·Redis만 켜고 Spring은 로컬에서 실행할 수 있습니다. 위의 전체 Docker 실행과 동시에 실행하면 8080 포트가 충돌합니다.
 
 ```powershell
-docker compose down
+docker compose up -d --wait
+.\gradlew.bat bootRun
 ```
 
-이 명령은 PostgreSQL 데이터 볼륨을 유지하므로 다음 `up`에서도 회원 정보가 남습니다. **`docker compose down -v`는 DB 볼륨까지 삭제하므로 평소에는 사용하지 마세요.** Redis 인증번호·재발급 토큰은 캐시 데이터이므로 컨테이너 재생성 시 사라질 수 있습니다. 그 경우 다시 인증/로그인하면 됩니다.
+이 방식에서는 `config/application-local.yml`의 `spring.datasource.password`도 `.env`의 `DB_PASSWORD`와 같게 적어야 합니다. `bootRun`을 실행하는 PowerShell에서 `java -version`이 21이 아니면 `JAVA_HOME`을 자신의 Java 21 설치 경로로 맞춥니다. 설정 파일은 저장소 루트에서 실행할 때 읽힙니다.
 
-스키마 변경 시 이미 적용된 V1을 수정하지 말고 `V2__...sql` 같은 새 Flyway 파일을 만듭니다. [`docs/database/schema.sql`](docs/database/schema.sql)은 초기 설계 참고 사본입니다. 컬럼별 의미는 [DB 테이블·컬럼 설명](docs/database/TABLE_COLUMN_GUIDE.md)을 참고하세요.
+## 종료와 자주 생기는 오류
+
+```powershell
+docker compose --profile full down
+```
+
+이 명령은 PostgreSQL 데이터를 유지합니다. **`down -v`는 로컬 DB 데이터까지 지우므로 사용하지 마세요.** Spring을 직접 실행했다면 먼저 그 창에서 `Ctrl+C`를 누른 뒤 `docker compose down`을 실행합니다.
+
+- `DB_PASSWORD` 오류: `.env`에 값을 입력했는지 확인합니다. 이미 만든 DB의 비밀번호는 `.env`만 바꿔도 자동으로 바뀌지 않습니다.
+- JWT 키 오류: `config/application-local.yml`의 `app.jwt.secret`이 32바이트 이상인지 확인합니다.
+- 8080 포트 오류: 다른 Spring 서버나 Docker `app`이 이미 실행 중인지 확인합니다.
+- 메일 발송 `503`: `spring.mail`과 `app.mail.from`의 SMTP 설정을 확인합니다.
+
+DB 구조는 [테이블·컬럼 설명](docs/database/TABLE_COLUMN_GUIDE.md)을 참고합니다.

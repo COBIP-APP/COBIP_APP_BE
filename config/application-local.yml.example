@@ -2,7 +2,7 @@
 # application-local.yml is ignored by Git and is NOT packaged inside the JAR.
 spring:
   datasource:
-    password: '' # Same DB_PASSWORD as the root .env file
+    password: '' # Required for bootRun; Docker Compose uses DB_PASSWORD from .env
   mail:
     host: '' # Fill these only when using real email verification
     port: 587
