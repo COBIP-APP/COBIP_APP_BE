@@ -1,5 +1,6 @@
 package com.cobip.auth;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +49,7 @@ class AuthController {
     }
 
     @PostMapping("/logout")
+    @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<Void> logout(@AuthenticationPrincipal Jwt accessToken,
                                 @Valid @RequestBody AuthDtos.LogoutRequest request) {
         auth.logout(accessToken, request.refreshToken());

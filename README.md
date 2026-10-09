@@ -185,7 +185,11 @@ $body = @{ refreshToken = $login.refreshToken } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri "$api/logout" -Headers @{ Authorization = "Bearer $($login.accessToken)" } -ContentType 'application/json; charset=utf-8' -Body $body
 ```
 
-위 PowerShell 변수에는 실행 중 토큰·비밀번호가 들어 있으므로 공용 PC라면 창을 닫고, 값을 복사해 채팅이나 커밋에 남기지 마세요. 전체 요청·응답과 오류 코드는 [인증 API 계약](docs/auth-api.md)을 보세요. **현재 Swagger UI는 설치하지 않았으므로** `/swagger-ui.html`이 열리지 않는 것은 정상입니다.
+위 PowerShell 변수에는 실행 중 토큰·비밀번호가 들어 있으므로 공용 PC라면 창을 닫고, 값을 복사해 채팅이나 커밋에 남기지 마세요. 전체 요청·응답과 오류 코드는 [인증 API 계약](docs/auth-api.md)을 보세요.
+
+## Swagger API 문서
+
+서버를 켠 뒤 [Swagger UI](http://localhost:8080/swagger-ui.html)에서 현재 브랜치의 API 목록, 요청 형식, 응답 형식을 확인하고 직접 호출할 수 있습니다. OpenAPI 원본은 [JSON 문서](http://localhost:8080/v3/api-docs)에서 확인합니다. 로그인 후 보호된 API를 시험할 때는 화면의 **Authorize**에 Access Token을 넣습니다. Swagger는 API 형태를 보여주고, 인증번호·토큰을 어떤 순서로 사용하는지는 [인증 API 계약](docs/auth-api.md)과 [Flutter 화면 연결 안내](docs/auth-fe-alignment.md)를 따릅니다. 외부 공개 서버에서는 `SWAGGER_ENABLED=false`로 두 문서 화면을 끄세요.
 
 ## Flutter 앱에서 접속할 때
 
