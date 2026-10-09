@@ -14,6 +14,7 @@
 | --- | --- | --- |
 | 400 | `INVALID_REQUEST` | 형식·필수 동의·비밀번호 길이 오류 |
 | 400 | `INVALID_CODE` | 인증번호 오류·만료·시도 횟수 초과 |
+| 400 | `INVALID_RESET_TOKEN` | 비밀번호 재설정 토큰 오류·만료·이미 사용됨 |
 | 400 | `EMAIL_NOT_VERIFIED` | 이메일 인증을 완료하지 않고 가입 요청 |
 | 401 | `INVALID_CREDENTIALS` | 로그인 정보 불일치 또는 사용 불가능한 계정. 계정 존재 여부를 구분해 알리지 않음 |
 | 401 | `INVALID_REFRESH_TOKEN` | 재발급 토큰 오류·만료·이미 사용됨 |
@@ -115,9 +116,56 @@ Access Token은 15분 JWT다. Refresh Token은 14일 유효한 난수 토큰이�
 
 `204 No Content`로 응답 본문은 없다. 해당 Refresh Token과 현재 Access Token을 폐기한다. 다른 기기에서 발급받은 토큰은 유지한다. Flutter는 응답 후 로컬 토큰을 삭제하고 로그인 화면으로 이동한다.
 
+## 7. 비밀번호 재설정
+
+로그인하지 않은 사용자도 **이메일 → 인증번호 → 새 비밀번호** 순서로 진행한다. 회원가입 인증번호와 저장소 키가 분리되어 있어 서로 대신 사용할 수 없다.
+
+### 7-1. 인증번호 발송
+
+`POST /api/auth/password-resets/send` — 인증 불필요
+
+```json
+{"email":"student@example.com"}
+```
+
+`202 Accepted`:
+
+```json
+{"message":"가입된 이메일이라면 인증번호를 발송했습니다.","expiresInSeconds":300,"resendAfterSeconds":60}
+```
+
+가입되지 않았거나 사용 불가능한 계정에도 같은 응답을 반환하고 실제 메일은 보내지 않는다. 같은 이메일은 60초 안에 재요청할 수 없으며, 인증번호는 5분 유효하다. 재전송하면 이전 인증번호는 무효화된다.
+
+### 7-2. 인증번호 확인
+
+`POST /api/auth/password-resets/confirm` — 인증 불필요
+
+```json
+{"email":"student@example.com","code":"012345"}
+```
+
+`200 OK`:
+
+```json
+{"resetToken":"<opaque-token>","expiresInSeconds":600}
+```
+
+틀린 번호는 최대 5회까지 입력할 수 있다. `resetToken`은 10분간 유효한 일회용 값이다. Flutter는 이를 새 비밀번호를 저장할 때까지 메모리에 보관하고 화면·로그에 표시하지 않는다. 인증번호 확인 응답을 받은 뒤에만 새 비밀번호 화면으로 이동한다.
+
+### 7-3. 새 비밀번호 저장
+
+`POST /api/auth/password-resets/complete` — Access Token 불필요
+
+```json
+{"resetToken":"<opaque-token>","newPassword":"new-password-123"}
+```
+
+새 비밀번호는 8~64자다. 비밀번호 확인값은 Flutter에서 비교하고 요청에는 넣지 않는다. 성공하면 `204 No Content`이며, 사용한 `resetToken`은 즉시 폐기된다. 비밀번호가 변경되면 **기존 Access·Refresh Token은 더 이상 사용할 수 없고**, 새 비밀번호로 다시 로그인해야 한다. 유효기간이 지난 토큰 또는 재사용한 토큰은 `400 INVALID_RESET_TOKEN`이다.
+
 ## 프론트 연결 메모
 
 - 메일 발송 응답의 `expiresInSeconds`와 `resendAfterSeconds`로 타이머를 시작한다. 타이머 숫자를 화면에 고정값으로 넣지 않는다.
 - 이메일 인증 후 이메일 필드를 수정하면 `verified` 상태를 해제한다.
 - 401 응답은 자동으로 무한 재시도하지 않는다. 재발급이 실패하면 저장한 토큰을 지우고 로그인 화면으로 보낸다.
+- 비밀번호 재설정 화면은 `/password-resets/send` → `/confirm` → `/complete` 순서로 연결한다. 메일 발송 `202`만으로 재설정 성공을 표시하지 않는다.
 - 앱 표시 이름은 **COBIA**다. GitHub 저장소명과 Java 패키지명은 기존 값을 유지해도 API 동작에는 영향이 없다.

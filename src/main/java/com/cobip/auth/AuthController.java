@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 class AuthController {
     private final AuthService auth;
+    private final PasswordResetService passwordResets;
 
-    AuthController(AuthService auth) {
+    AuthController(AuthService auth, PasswordResetService passwordResets) {
         this.auth = auth;
+        this.passwordResets = passwordResets;
     }
 
     @PostMapping("/email-verifications/send")
@@ -46,6 +48,25 @@ class AuthController {
     @PostMapping("/refresh")
     AuthDtos.TokenResponse refresh(@Valid @RequestBody AuthDtos.RefreshRequest request) {
         return auth.refresh(request.refreshToken());
+    }
+
+    @PostMapping("/password-resets/send")
+    ResponseEntity<AuthDtos.SendEmailResponse> sendPasswordResetCode(
+            @Valid @RequestBody AuthDtos.SendEmailRequest request) {
+        return ResponseEntity.accepted().body(passwordResets.sendCode(request.email()));
+    }
+
+    @PostMapping("/password-resets/confirm")
+    AuthDtos.ConfirmPasswordResetResponse confirmPasswordResetCode(
+            @Valid @RequestBody AuthDtos.ConfirmEmailRequest request) {
+        return passwordResets.confirmCode(request.email(), request.code());
+    }
+
+    @PostMapping("/password-resets/complete")
+    ResponseEntity<Void> completePasswordReset(
+            @Valid @RequestBody AuthDtos.CompletePasswordResetRequest request) {
+        passwordResets.complete(request.resetToken(), request.newPassword());
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")

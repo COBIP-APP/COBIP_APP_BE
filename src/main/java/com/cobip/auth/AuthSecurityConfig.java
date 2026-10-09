@@ -51,7 +51,7 @@ class AuthSecurityConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(SecretKey key, StringRedisTemplate redis,
+    JwtDecoder jwtDecoder(SecretKey key, StringRedisTemplate redis, UserRepository users,
                           @Value("${app.jwt.issuer}") String issuer) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(key)
                 .macAlgorithm(MacAlgorithm.HS256).build();
@@ -62,9 +62,19 @@ class AuthSecurityConfig {
             if (jwt.getId() == null || jwt.getExpiresAt() == null || jwt.getSubject() == null
                     || !List.of("USER", "ADMIN").contains(jwt.getClaimAsString("role"))
                     || Boolean.TRUE.equals(redis.hasKey("auth:revoked:" + jwt.getId()))) {
-                return OAuth2TokenValidatorResult.failure(
-                        new OAuth2Error("invalid_token", "Token has been revoked", null));
+                return invalidToken();
             }
+            User user;
+            try {
+                user = users.findById(Long.parseLong(jwt.getSubject())).orElse(null);
+            } catch (NumberFormatException exception) {
+                return invalidToken();
+            }
+            Object claim = jwt.getClaim("authVersion");
+            long version = claim == null ? 0 : claim instanceof Number number ? number.longValue() : -1;
+            if (user == null || !"ACTIVE".equals(user.getStatus())
+                    || !user.getRole().equals(jwt.getClaimAsString("role"))
+                    || user.getAuthVersion() != version) return invalidToken();
             return OAuth2TokenValidatorResult.success();
         });
         return decoder;
@@ -85,7 +95,10 @@ class AuthSecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/email-verifications/send",
                                 "/api/auth/email-verifications/confirm",
-                                "/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
+                                "/api/auth/register", "/api/auth/login", "/api/auth/refresh",
+                                "/api/auth/password-resets/send",
+                                "/api/auth/password-resets/confirm",
+                                "/api/auth/password-resets/complete").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> {
@@ -98,5 +111,10 @@ class AuthSecurityConfig {
                     response.getWriter().write("{\"code\":\"FORBIDDEN\",\"message\":\"접근 권한이 없습니다.\"}");
                 }))
                 .build();
+    }
+
+    private static OAuth2TokenValidatorResult invalidToken() {
+        return OAuth2TokenValidatorResult.failure(
+                new OAuth2Error("invalid_token", "Token is no longer valid", null));
     }
 }
