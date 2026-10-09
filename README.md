@@ -2,6 +2,17 @@
 
 COBIA Flutter 앱의 Spring Boot API입니다. 로컬 개발에서는 Docker Compose로 Spring Boot·PostgreSQL·Redis를 각자 PC에서 실행합니다. API 목록은 서버를 켠 뒤 [Swagger UI](http://localhost:8080/swagger-ui.html)에서 확인합니다.
 
+## 처음 실행: 순서만 보기
+
+1. **Git과 Docker Desktop을 설치**하고 Docker Desktop을 켭니다.
+2. PowerShell에서 `git clone --branch develop https://github.com/COBIP-APP/COBIP_APP_BE.git`으로 백엔드 `develop` 브랜치를 받습니다.
+3. `cd COBIP_APP_BE`로 이동한 뒤 `powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-local.ps1`을 실행합니다. 로컬 설정 파일과 JWT 키가 자동으로 만들어집니다.
+4. `.env` 파일의 `DB_PASSWORD`를 정합니다. 이메일 인증을 사용할 팀원은 `config/application-local.yml`에 자신의 SMTP 정보도 입력합니다.
+5. `docker compose --profile full up -d --build --wait`로 백엔드·PostgreSQL·Redis를 켭니다.
+6. PC에서 [Swagger UI](http://localhost:8080/swagger-ui.html)를 열어 API를 확인합니다. 같은 PC의 Android 에뮬레이터에서는 API 주소로 `http://10.0.2.2:8080`을 사용합니다.
+
+명령이 실패하거나 Spring을 직접 실행해야 한다면 아래 상세 안내를 참고하세요.
+
 ## Flutter 팀원: 처음 실행
 
 **필요한 것:** Git, Docker Desktop. Java는 Docker 이미지 안에서 실행되므로 별도 설치하지 않아도 됩니다. Windows PowerShell 기준입니다. 저장소는 현재 공개되어 있어 내려받기 권한을 따로 받을 필요가 없습니다.
