@@ -23,9 +23,13 @@ public final class AuthDtos {
                                @NotBlank String password) {}
     public record RefreshRequest(@NotBlank @Size(max = 2048) String refreshToken) {}
     public record LogoutRequest(@NotBlank @Size(max = 2048) String refreshToken) {}
+    public record CompletePasswordResetRequest(
+            @NotBlank @Size(max = 256) String resetToken,
+            @NotBlank @Size(min = 8, max = 64) String newPassword) {}
 
     public record SendEmailResponse(String message, int expiresInSeconds, int resendAfterSeconds) {}
     public record ConfirmEmailResponse(boolean verified) {}
+    public record ConfirmPasswordResetResponse(String resetToken, int expiresInSeconds) {}
     public record UserResponse(Long userId, String email, String nickname, String role) {
         static UserResponse of(User user) {
             return new UserResponse(user.getId(), user.getEmail(), user.getNickname(), user.getRole());

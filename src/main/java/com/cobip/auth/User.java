@@ -25,6 +25,9 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Column(name = "auth_version", nullable = false)
+    private long authVersion;
+
     @Column(nullable = false)
     private String role = "USER";
 
@@ -62,7 +65,14 @@ public class User {
     public String getEmail() { return email; }
     public String getNickname() { return nickname; }
     public String getPasswordHash() { return passwordHash; }
+    public long getAuthVersion() { return authVersion; }
     public String getRole() { return role; }
     public String getStatus() { return status; }
     public boolean isEmailVerified() { return emailVerified; }
+
+    void changePassword(String newHash, Instant now) {
+        passwordHash = newHash;
+        authVersion++;
+        updatedAt = now;
+    }
 }
