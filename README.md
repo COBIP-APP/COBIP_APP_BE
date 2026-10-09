@@ -9,22 +9,12 @@ COBIA Flutter 앱의 Spring Boot API입니다. 로컬 개발에서는 Docker Com
 ```powershell
 git clone --branch develop https://github.com/COBIP-APP/COBIP_APP_BE.git
 cd COBIP_APP_BE
-Copy-Item .env.example .env
-Copy-Item config/application-local.yml.example config/application-local.yml
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-local.ps1
 ```
 
-이미 저장소나 설정 파일이 있다면 다시 복사해 덮어쓰지 마세요. 다음 두 파일은 **처음 한 번만** 설정합니다.
+이 명령은 `.env`와 `config/application-local.yml`이 없을 때만 만들고, JWT 키도 한 번 자동 생성합니다. 기존 설정 파일은 덮어쓰지 않습니다. `.env`의 `DB_PASSWORD`에 자신의 로컬 PostgreSQL 비밀번호를 **처음 한 번만** 적습니다.
 
-1. `.env`의 `DB_PASSWORD`에 자신의 로컬 PostgreSQL 비밀번호를 적습니다.
-2. `config/application-local.yml`의 `app.jwt.secret`에 32바이트 이상의 키를 적습니다. 키를 매번 바꾸는 것이 아니라 **한 번 만든 값을 계속 사용**합니다. 각자 DB와 서버를 따로 쓰므로 팀원 간 같은 키일 필요는 없습니다. 기존에 만든 로컬 설정 파일이 있으면 그 키를 그대로 사용하세요.
-
-키가 없다면 PowerShell에서 한 번 생성해 결과를 `app.jwt.secret`에 붙여 넣습니다.
-
-```powershell
-$bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); [Convert]::ToBase64String($bytes)
-```
-
-Docker 실행에서는 DB 비밀번호를 `config/application-local.yml`에 또 적지 않아도 됩니다. Compose가 `.env`의 값을 Spring에 전달합니다. 회원가입 이메일 인증이나 비밀번호 재설정을 시험하려면 같은 설정 파일의 `spring.mail`과 `app.mail.from`에 자신의 SMTP 발신 정보를 입력해야 합니다. 비워두면 서버는 켜지지만 메일 발송 API는 `503 MAIL_UNAVAILABLE`을 반환합니다. **`.env`와 `config/application-local.yml`은 Git에 올라가지 않으며, 팀원에게 비밀값을 보내지 않습니다.**
+JWT 키는 생성된 로컬 설정 파일에 고정되어 서버를 다시 켜도 유지됩니다. Docker 실행에서는 DB 비밀번호를 `config/application-local.yml`에 또 적지 않아도 됩니다. Compose가 `.env`의 값을 Spring에 전달합니다. 회원가입 이메일 인증이나 비밀번호 재설정을 시험하려면 같은 설정 파일의 `spring.mail`과 `app.mail.from`에 자신의 SMTP 발신 정보를 입력해야 합니다. 비워두면 서버는 켜지지만 메일 발송 API는 `503 MAIL_UNAVAILABLE`을 반환합니다. **`.env`와 `config/application-local.yml`은 Git에 올라가지 않으며, 팀원에게 비밀값을 보내지 않습니다.**
 
 Docker Desktop을 켠 뒤 저장소 폴더에서 실행합니다.
 
@@ -66,8 +56,10 @@ docker compose --profile full down
 이 명령은 PostgreSQL 데이터를 유지합니다. **`down -v`는 로컬 DB 데이터까지 지우므로 사용하지 마세요.** Spring을 직접 실행했다면 먼저 그 창에서 `Ctrl+C`를 누른 뒤 `docker compose down`을 실행합니다.
 
 - `DB_PASSWORD` 오류: `.env`에 값을 입력했는지 확인합니다. 이미 만든 DB의 비밀번호는 `.env`만 바꿔도 자동으로 바뀌지 않습니다.
-- JWT 키 오류: `config/application-local.yml`의 `app.jwt.secret`이 32바이트 이상인지 확인합니다.
+- JWT 키 오류: `config/application-local.yml`이 있는지 확인하고, 없다면 `setup-local.ps1`을 다시 실행합니다.
 - 8080 포트 오류: 다른 Spring 서버나 Docker `app`이 이미 실행 중인지 확인합니다.
 - 메일 발송 `503`: `spring.mail`과 `app.mail.from`의 SMTP 설정을 확인합니다.
 
 DB 구조는 [테이블·컬럼 설명](docs/database/TABLE_COLUMN_GUIDE.md)을 참고합니다.
+
+배포할 때는 `SPRING_PROFILES_ACTIVE`를 `local` 이외의 값으로 설정하고 비공개 `JWT_SECRET_KEY`를 주입해야 합니다.

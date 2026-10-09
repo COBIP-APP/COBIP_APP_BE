@@ -14,6 +14,6 @@ spring:
 
 app:
   jwt:
-    secret: '' # Your own fixed random key, at least 32 UTF-8 bytes
+    secret: '' # setup-local.ps1 creates a private, fixed key in the ignored local copy
   mail:
     from: '' # Usually the verified sender email address
