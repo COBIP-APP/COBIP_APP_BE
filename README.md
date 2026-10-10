@@ -7,7 +7,7 @@ COBIA Flutter 앱의 Spring Boot API입니다. 로컬 개발에서는 Docker Com
 1. **Git과 Docker Desktop을 설치**하고 Docker Desktop을 켭니다.
 2. PowerShell에서 `git clone --branch develop https://github.com/COBIP-APP/COBIP_APP_BE.git`으로 백엔드 `develop` 브랜치를 받습니다.
 3. `cd COBIP_APP_BE`로 이동한 뒤 `powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-local.ps1`을 실행합니다. 로컬 설정 파일과 JWT 키가 자동으로 만들어집니다.
-4. `.env` 파일의 `DB_PASSWORD`를 정합니다. 이메일 인증을 사용할 팀원은 `config/application-local.yml`에 자신의 SMTP 정보도 입력합니다.
+4. `.env` 파일을 열어 `DB_PASSWORD` 뒤에 **처음 사용할 로컬 DB 비밀번호를 직접 정해** 입력합니다. 이메일 인증을 사용할 팀원은 `config/application-local.yml`에 자신의 SMTP 정보도 입력합니다.
 5. `docker compose --profile full up -d --build --wait`로 백엔드·PostgreSQL·Redis를 켭니다.
 6. PC에서 [Swagger UI](http://localhost:8080/swagger-ui.html)를 열어 API를 확인합니다. 같은 PC의 Android 에뮬레이터에서는 API 주소로 `http://10.0.2.2:8080`을 사용합니다.
 
@@ -23,7 +23,9 @@ cd COBIP_APP_BE
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-local.ps1
 ```
 
-이 명령은 `.env`와 `config/application-local.yml`이 없을 때만 만들고, JWT 키도 한 번 자동 생성합니다. 기존 설정 파일은 덮어쓰지 않습니다. `.env`의 `DB_PASSWORD`에 자신의 로컬 PostgreSQL 비밀번호를 **처음 한 번만** 적습니다.
+이 명령은 `.env`와 `config/application-local.yml`이 없을 때만 만들고, JWT 키도 한 번 자동 생성합니다. 기존 설정 파일은 덮어쓰지 않습니다.
+
+**DB 비밀번호 입력하기:** PowerShell에서 `notepad .env`를 실행하거나 IntelliJ 프로젝트 창에서 `.env`를 엽니다. 처음 사용하는 PC라면 PostgreSQL 비밀번호가 미리 있는 것이 아니라, 여기서 직접 정합니다. `DB_PASSWORD=`의 등호 오른쪽에 자신이 정한 값을 적고 저장하세요. 예를 들어 `DB_PASSWORD=MyLocalDb_ChangeMe_2026`처럼 한 줄로 작성하되, 예시 비밀번호는 그대로 사용하지 마세요. 비밀번호를 비워 두면 Docker가 시작되지 않습니다. Docker가 DB를 처음 만든 뒤에는 이 값을 기억해 두고 계속 사용해야 합니다. 기존 DB의 비밀번호는 `.env`만 수정해도 바뀌지 않습니다. 별도로 PostgreSQL을 설치할 필요는 없습니다.
 
 JWT 키는 생성된 로컬 설정 파일에 고정되어 서버를 다시 켜도 유지됩니다. Docker 실행에서는 DB 비밀번호를 `config/application-local.yml`에 또 적지 않아도 됩니다. Compose가 `.env`의 값을 Spring에 전달합니다. 회원가입 이메일 인증이나 비밀번호 재설정을 시험하려면 같은 설정 파일의 `spring.mail`과 `app.mail.from`에 자신의 SMTP 발신 정보를 입력해야 합니다. 비워두면 서버는 켜지지만 메일 발송 API는 `503 MAIL_UNAVAILABLE`을 반환합니다. **`.env`와 `config/application-local.yml`은 Git에 올라가지 않으며, 팀원에게 비밀값을 보내지 않습니다.**
 
@@ -45,7 +47,7 @@ docker compose ps
 
 Flutter 팀은 Dio의 `baseUrl`을 Android 에뮬레이터 기준으로 설정합니다. 예를 들어 로그인 경로는 `POST /api/auth/login`입니다. 각 팀원이 띄운 PostgreSQL은 **서로 다른 로컬 DB**이므로 다른 PC에서 가입한 계정은 내 PC에 자동으로 생기지 않습니다. 실제 휴대폰이나 다른 PC에서 접속할 때만 `.env`에 `APP_BIND_ADDRESS=0.0.0.0`을 추가하고 백엔드 PC의 LAN IP와 방화벽 설정을 확인하세요.
 
-요청·응답 필드는 Swagger에서, 인증번호 → 회원가입 → 로그인 → 토큰 재발급의 호출 순서는 [인증 API 명세](docs/auth-api.md)와 [Flutter 연결 안내](docs/auth-fe-alignment.md)에서 확인합니다. 비밀번호 재설정 API는 해당 PR이 `develop`에 병합된 뒤 Swagger에도 나타납니다.
+요청·응답 필드는 Swagger에서 확인합니다. 호출 순서는 [인증 API 명세](docs/auth-api.md)와 [Flutter 연결 안내](docs/auth-fe-alignment.md), 학습·관리자 기능은 [학습 API 명세](docs/learning-api.md)를 참고하세요. 이 기능 브랜치의 API를 Docker에서 확인할 때는 최신 코드를 받은 뒤 `docker compose --profile full up -d --build --wait`로 이미지를 다시 빌드해야 합니다.
 
 ## 백엔드 팀원: Spring을 직접 실행할 때
 
@@ -56,7 +58,7 @@ docker compose up -d --wait
 .\gradlew.bat bootRun
 ```
 
-이 방식에서는 `config/application-local.yml`의 `spring.datasource.password`도 `.env`의 `DB_PASSWORD`와 같게 적어야 합니다. `bootRun`을 실행하는 PowerShell에서 `java -version`이 21이 아니면 `JAVA_HOME`을 자신의 Java 21 설치 경로로 맞춥니다. 설정 파일은 저장소 루트에서 실행할 때 읽힙니다.
+이 방식에서는 `config/application-local.yml`의 `spring.datasource.password`도 `.env`의 `DB_PASSWORD`와 같게 적어야 합니다. 예: `.env`에 `DB_PASSWORD=MyLocalDb_ChangeMe_2026`을 적었다면 YAML에는 `password: 'MyLocalDb_ChangeMe_2026'`을 적습니다. `bootRun`을 실행하는 PowerShell에서 `java -version`이 21이 아니면 `JAVA_HOME`을 자신의 Java 21 설치 경로로 맞춥니다. 설정 파일은 저장소 루트에서 실행할 때 읽힙니다.
 
 ## 종료와 자주 생기는 오류
 

@@ -71,7 +71,7 @@ class AuthService {
         }
 
         var response = new AuthDtos.SendEmailResponse(
-                "인증번호를 발송했습니다. 메일함을 확인해주세요.", 300, 60);
+                "가입 가능한 이메일이라면 인증번호를 발송했습니다. 메일함을 확인해주세요.", 300, 60);
         if (users.existsByEmailIgnoreCase(email)) return response;
 
         String codeKey = "auth:email-code:" + suffix;

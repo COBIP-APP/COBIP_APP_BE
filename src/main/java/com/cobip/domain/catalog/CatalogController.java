@@ -1,6 +1,7 @@
 package com.cobip.domain.catalog;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "분류", description = "프로그래밍 언어와 학습 주제 조회")
 @RequestMapping("/api")
 class CatalogController {
 

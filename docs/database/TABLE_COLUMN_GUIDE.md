@@ -174,11 +174,11 @@ SQL은 `category_id`와 `language_id`의 조합 자체가 업무적으로 적절
 
 ## 구현할 때 헷갈리기 쉬운 점
 
-- **테이블 생성과 API 구현은 다르다.** Flyway로 테이블은 만들어졌지만 Entity·Repository·Service·Controller는 아직 구현해야 한다.
+- **테이블 생성과 API 구현은 다르다.** Flyway가 테이블을 만들고 현재 인증·콘텐츠 조회·학습 활동·관리자 콘텐츠 저장 API가 일부 구현됐다. 실제 제공 범위는 [학습 API 명세](../learning-api.md)와 Swagger를 확인한다.
 - **`is_active`와 `is_published`는 다르다.** 전자는 언어·분류 선택지 사용 여부이고, 후자는 챕터·문제 공개 여부다. 앱 하단 메뉴를 끄는 값이 아니다.
 - **작성자 FK가 관리자 권한을 강제하지 않는다.** `created_by`·`uploaded_by`에 아무 회원 ID나 연결할 수 있으므로 등록 API가 권한을 검사해야 한다.
 - **정답과 내부 기준은 일반 조회 응답에서 숨긴다.** `correct_choice_key`, `reference_answer`, 비공개 `grading_criteria`가 제출 전에 노출되지 않도록 DTO를 분리한다.
 - **재제출은 덮어쓰지 않는다.** `submissions`에 새 행을 만들고 필요하면 최신 제출을 조회한다.
-- **이미지·AI·이메일/토큰 기능은 스키마만으로 동작하지 않는다.** S3·FastAPI·SMTP·Redis 연동 API를 별도로 구현해야 한다.
+- **이미지·AI·이메일/토큰 기능은 스키마만으로 동작하지 않는다.** SMTP·Redis 기반 인증은 구현됐지만 S3 이미지 업로드와 FastAPI 생성·채점 연동은 별도 작업이다.
 
 관계선을 보며 읽고 싶다면 [`cobip-erd.svg`](cobip-erd.svg)와 [`erd-relationships.md`](erd-relationships.md)를 함께 참고한다.
