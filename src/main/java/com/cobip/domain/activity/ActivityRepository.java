@@ -161,6 +161,35 @@ class ActivityRepository {
                 .findFirst();
     }
 
+    List<LearningProgressResponse> findLearningProgress(Long userId) {
+        String sql = """
+                SELECT p.template_id, t.title, c.code AS category_code, c.name AS category_name,
+                       l.code AS language_code, l.name AS language_name,
+                       p.last_section_id, s.title AS last_section_title,
+                       p.started_at, p.last_studied_at, p.completed_at
+                FROM user_progress p
+                JOIN templates t ON t.template_id = p.template_id
+                JOIN categories c ON c.category_id = t.category_id
+                LEFT JOIN languages l ON l.language_id = t.language_id
+                LEFT JOIN template_sections s ON s.section_id = p.last_section_id
+                WHERE p.user_id = :userId AND t.is_published = true
+                ORDER BY p.last_studied_at DESC, p.template_id DESC
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("userId", userId),
+                (rs, rowNum) -> new LearningProgressResponse(
+                        rs.getLong("template_id"),
+                        rs.getString("title"),
+                        rs.getString("category_code"),
+                        rs.getString("category_name"),
+                        rs.getString("language_code"),
+                        rs.getString("language_name"),
+                        rs.getObject("last_section_id", Long.class),
+                        rs.getString("last_section_title"),
+                        rs.getObject("started_at", OffsetDateTime.class),
+                        rs.getObject("last_studied_at", OffsetDateTime.class),
+                        rs.getObject("completed_at", OffsetDateTime.class)));
+    }
+
     BookmarkResponse addBookmark(Long userId, Long templateId) {
         String sql = """
                 INSERT INTO template_bookmarks (user_id, template_id)

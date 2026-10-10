@@ -47,6 +47,21 @@ record ProgressResponse(
 ) {
 }
 
+record LearningProgressResponse(
+        Long templateId,
+        String title,
+        String categoryCode,
+        String categoryName,
+        String languageCode,
+        String languageName,
+        Long lastSectionId,
+        String lastSectionTitle,
+        OffsetDateTime startedAt,
+        OffsetDateTime lastStudiedAt,
+        OffsetDateTime completedAt
+) {
+}
+
 record BookmarkResponse(
         Long userId,
         Long templateId,

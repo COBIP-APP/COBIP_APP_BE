@@ -99,6 +99,11 @@ class ActivityController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Progress not found."));
     }
 
+    @GetMapping("/users/me/progress")
+    List<LearningProgressResponse> myProgress(@AuthenticationPrincipal Jwt jwt) {
+        return activityRepository.findLearningProgress(Long.valueOf(jwt.getSubject()));
+    }
+
     @GetMapping("/users/{userId}/bookmarks")
     List<BookmarkResponse> bookmarks(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
         requireOwner(jwt, userId);
