@@ -25,6 +25,12 @@ class ActivityRepository {
         this.objectMapper = objectMapper;
     }
 
+    boolean publishedTemplateExists(Long templateId) {
+        String sql = "SELECT EXISTS (SELECT 1 FROM templates WHERE template_id = :id AND is_published = true)";
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                sql, new MapSqlParameterSource("id", templateId), Boolean.class));
+    }
+
     Optional<QuestionAnswerRow> findQuestionAnswer(Long questionId) {
         String sql = """
                 SELECT question_id, question_type, correct_choice_key, is_published
@@ -126,7 +132,7 @@ class ActivityRepository {
                 )
                 ON CONFLICT (user_id, template_id)
                 DO UPDATE SET
-                    last_section_id = EXCLUDED.last_section_id,
+                    last_section_id = COALESCE(EXCLUDED.last_section_id, user_progress.last_section_id),
                     last_studied_at = now(),
                     completed_at = CASE
                         WHEN :completed = true THEN COALESCE(user_progress.completed_at, now())
@@ -214,7 +220,7 @@ class ActivityRepository {
                 SELECT b.user_id, b.template_id, t.title, t.summary, t.difficulty, b.created_at
                 FROM template_bookmarks b
                 JOIN templates t ON t.template_id = b.template_id
-                WHERE b.user_id = :userId
+                WHERE b.user_id = :userId AND t.is_published = true
                 ORDER BY b.created_at DESC, b.template_id DESC
                 """;
 

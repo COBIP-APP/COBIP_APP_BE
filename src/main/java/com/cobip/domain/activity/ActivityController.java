@@ -1,6 +1,7 @@
 package com.cobip.domain.activity;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "학습 활동", description = "답안 제출, 진도와 북마크")
 @RequestMapping("/api")
 class ActivityController {
 
@@ -50,6 +52,7 @@ class ActivityController {
         ActivityRepository.QuestionAnswerRow question = activityRepository.findQuestionAnswer(questionId)
                 .filter(ActivityRepository.QuestionAnswerRow::published)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found."));
+        requireMatchingAnswer(question.questionType(), request);
 
         ActivityRepository.GradingDecision grading = decideGrading(question, request);
 
@@ -81,6 +84,7 @@ class ActivityController {
             @RequestBody ProgressUpdateRequest request
     ) {
         requireOwner(jwt, userId);
+        requirePublishedTemplate(templateId);
         return activityRepository.upsertProgress(
                 userId,
                 templateId,
@@ -117,6 +121,7 @@ class ActivityController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         requireOwner(jwt, userId);
+        requirePublishedTemplate(templateId);
         return activityRepository.addBookmark(userId, templateId);
     }
 
@@ -134,6 +139,24 @@ class ActivityController {
     private void requireOwner(Jwt jwt, Long userId) {
         if (!userId.toString().equals(jwt.getSubject())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot access another user's activity.");
+        }
+    }
+
+    private void requirePublishedTemplate(Long templateId) {
+        if (!activityRepository.publishedTemplateExists(templateId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Template not found.");
+        }
+    }
+
+    private void requireMatchingAnswer(String questionType, SubmissionCreateRequest request) {
+        boolean matches = switch (questionType) {
+            case "MULTIPLE_CHOICE" -> blankToNull(request.selectedChoiceKey()) != null;
+            case "CODE_EXPLANATION" -> blankToNull(request.answerText()) != null;
+            case "CODE_WRITING" -> blankToNull(request.sourceCode()) != null;
+            default -> false;
+        };
+        if (!matches) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Answer does not match question type.");
         }
     }
 
