@@ -37,3 +37,7 @@ PC 브라우저는 `http://localhost:8080`, 같은 PC의 에뮬레이터는 `htt
 - 보호 API에는 `Authorization: Bearer <accessToken>`을 보낸다. 만료로 `401`이 난 요청만 토큰을 한 번 재발급한 뒤 재시도한다. 재발급 실패 시 로그인 화면으로 이동하고 무한 재시도하지 않는다.
 - 백엔드 활동 API의 `{userId}`와 제출 본문의 `userId`에는 로그인 응답의 `user.userId`를 사용한다. 다른 사용자 ID는 `403`이다. 새 `GET /api/users/me`와 `GET /api/users/me/progress`는 ID 전달 없이 JWT 사용자를 조회한다.
 - 다른 PC에서 만든 계정은 현재 PC의 로컬 DB에 자동으로 공유되지 않는다.
+
+## 메인 홈 화면과 학습 API
+
+Flutter FE PR #13은 홈 화면을 기존 공개 템플릿 목록·사용자별 진도 API에 연결했다. 호출 경로, 화면 상태, 아직 연결하지 않은 카드 이동은 [학습 API 명세의 홈 화면 연동 현황](learning-api.md#flutter-홈-화면-연동-현황-fe-pr-13)을 참고한다. 백엔드 `feature/learning-api`의 새 `GET /api/users/me/progress`는 현재 Flutter 홈에서 아직 사용하지 않는다.
