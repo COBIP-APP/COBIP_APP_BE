@@ -6,6 +6,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,11 +34,13 @@ class ActivityController {
     @ResponseStatus(HttpStatus.CREATED)
     SubmissionResponse submitAnswer(
             @PathVariable Long questionId,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody SubmissionCreateRequest request
     ) {
         if (request.userId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required.");
         }
+        requireOwner(jwt, request.userId());
         if (answerCount(request) != 1) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -61,8 +65,10 @@ class ActivityController {
     @GetMapping("/questions/{questionId}/submissions/latest")
     SubmissionResponse latestSubmission(
             @PathVariable Long questionId,
+            @AuthenticationPrincipal Jwt jwt,
             @org.springframework.web.bind.annotation.RequestParam Long userId
     ) {
+        requireOwner(jwt, userId);
         return activityRepository.findLatestSubmission(userId, questionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Submission not found."));
     }
@@ -71,8 +77,10 @@ class ActivityController {
     ProgressResponse updateProgress(
             @PathVariable Long userId,
             @PathVariable Long templateId,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody ProgressUpdateRequest request
     ) {
+        requireOwner(jwt, userId);
         return activityRepository.upsertProgress(
                 userId,
                 templateId,
@@ -83,22 +91,27 @@ class ActivityController {
     @GetMapping("/users/{userId}/progress/templates/{templateId}")
     ProgressResponse progress(
             @PathVariable Long userId,
-            @PathVariable Long templateId
+            @PathVariable Long templateId,
+            @AuthenticationPrincipal Jwt jwt
     ) {
+        requireOwner(jwt, userId);
         return activityRepository.findProgress(userId, templateId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Progress not found."));
     }
 
     @GetMapping("/users/{userId}/bookmarks")
-    List<BookmarkResponse> bookmarks(@PathVariable Long userId) {
+    List<BookmarkResponse> bookmarks(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
+        requireOwner(jwt, userId);
         return activityRepository.findBookmarks(userId);
     }
 
     @PutMapping("/users/{userId}/bookmarks/templates/{templateId}")
     BookmarkResponse addBookmark(
             @PathVariable Long userId,
-            @PathVariable Long templateId
+            @PathVariable Long templateId,
+            @AuthenticationPrincipal Jwt jwt
     ) {
+        requireOwner(jwt, userId);
         return activityRepository.addBookmark(userId, templateId);
     }
 
@@ -106,9 +119,17 @@ class ActivityController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void removeBookmark(
             @PathVariable Long userId,
-            @PathVariable Long templateId
+            @PathVariable Long templateId,
+            @AuthenticationPrincipal Jwt jwt
     ) {
+        requireOwner(jwt, userId);
         activityRepository.removeBookmark(userId, templateId);
+    }
+
+    private void requireOwner(Jwt jwt, Long userId) {
+        if (!userId.toString().equals(jwt.getSubject())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot access another user's activity.");
+        }
     }
 
     private ActivityRepository.GradingDecision decideGrading(
