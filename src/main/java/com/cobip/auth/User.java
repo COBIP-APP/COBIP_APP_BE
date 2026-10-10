@@ -69,6 +69,7 @@ public class User {
     public String getRole() { return role; }
     public String getStatus() { return status; }
     public boolean isEmailVerified() { return emailVerified; }
+    public Instant getCreatedAt() { return createdAt; }
 
     void changePassword(String newHash, Instant now) {
         passwordHash = newHash;
