@@ -1,6 +1,6 @@
 # COBIA 인증 API 계약
 
-기준: `feature/auth`의 현재 구현. 요청 본문과 본문이 있는 응답은 JSON이고 필드명은 `camelCase`다. 요청에는 `Content-Type: application/json; charset=utf-8`을 사용한다. 보호된 요청은 `Authorization: Bearer <accessToken>`을 보낸다. 비밀번호·인증번호·토큰 원문을 로그에 남기지 않는다.
+기준: 현재 백엔드 `AuthController` 구현. 요청 본문과 본문이 있는 응답은 JSON이고 필드명은 `camelCase`다. 요청에는 `Content-Type: application/json; charset=utf-8`을 사용한다. 보호된 요청은 `Authorization: Bearer <accessToken>`을 보낸다. 비밀번호·인증번호·토큰 원문을 로그에 남기지 않는다.
 
 ## 공통 오류
 
@@ -35,10 +35,10 @@
 `202 Accepted`:
 
 ```json
-{"message":"인증번호를 발송했습니다. 메일함을 확인해주세요.","expiresInSeconds":300,"resendAfterSeconds":60}
+{"message":"가입 가능한 이메일이라면 인증번호를 발송했습니다. 메일함을 확인해주세요.","expiresInSeconds":300,"resendAfterSeconds":60}
 ```
 
-이미 가입된 메일에도 같은 응답을 반환해 가입 여부를 노출하지 않는다. 이 경우에는 **메일을 실제로 보내지 않는다.** 새 가입 주소로 발송하려면 SMTP 설정이 필요하다. 6자리 코드는 5분 유효하고 같은 이메일로 60초 안에 재요청하면 429다. 재전송에 성공하면 이전 번호와 이메일 인증 완료 상태는 무효화된다.
+이미 가입된 메일에도 같은 응답을 반환해 가입 여부를 노출하지 않는다. 이 경우에는 **메일을 실제로 보내지 않는다.** `202`만으로 메일함에 도착했다고 판단하지 않는다. 새 가입 주소로 발송하려면 SMTP 설정이 필요하다. 6자리 코드는 5분 유효하고 같은 이메일로 60초 안에 재요청하면 429다. 재전송에 성공하면 이전 번호와 이메일 인증 완료 상태는 무효화된다.
 
 ## 2. 인증번호 확인
 

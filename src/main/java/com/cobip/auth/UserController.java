@@ -1,6 +1,7 @@
 package com.cobip.auth;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/users")
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "내 계정", description = "로그인한 사용자의 계정 정보")
 class UserController {
     private final UserRepository users;
 

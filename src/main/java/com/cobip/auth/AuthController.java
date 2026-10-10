@@ -1,6 +1,7 @@
 package com.cobip.auth;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "인증", description = "이메일 인증, 회원가입, 로그인, 토큰 및 비밀번호 재설정")
 class AuthController {
     private final AuthService auth;
     private final PasswordResetService passwordResets;

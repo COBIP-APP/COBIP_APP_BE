@@ -1,6 +1,7 @@
 package com.cobip.domain.content;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "학습 콘텐츠", description = "템플릿·목차·문제 조회")
 @RequestMapping("/api")
 class ContentController {
 

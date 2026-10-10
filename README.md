@@ -45,7 +45,7 @@ docker compose ps
 
 Flutter 팀은 Dio의 `baseUrl`을 Android 에뮬레이터 기준으로 설정합니다. 예를 들어 로그인 경로는 `POST /api/auth/login`입니다. 각 팀원이 띄운 PostgreSQL은 **서로 다른 로컬 DB**이므로 다른 PC에서 가입한 계정은 내 PC에 자동으로 생기지 않습니다. 실제 휴대폰이나 다른 PC에서 접속할 때만 `.env`에 `APP_BIND_ADDRESS=0.0.0.0`을 추가하고 백엔드 PC의 LAN IP와 방화벽 설정을 확인하세요.
 
-요청·응답 필드는 Swagger에서, 인증번호 → 회원가입 → 로그인 → 토큰 재발급의 호출 순서는 [인증 API 명세](docs/auth-api.md)와 [Flutter 연결 안내](docs/auth-fe-alignment.md)에서 확인합니다. 비밀번호 재설정 API는 해당 PR이 `develop`에 병합된 뒤 Swagger에도 나타납니다.
+요청·응답 필드는 Swagger에서 확인합니다. 호출 순서는 [인증 API 명세](docs/auth-api.md)와 [Flutter 연결 안내](docs/auth-fe-alignment.md), 학습·관리자 기능은 [학습 API 명세](docs/learning-api.md)를 참고하세요. 이 기능 브랜치의 API를 Docker에서 확인할 때는 최신 코드를 받은 뒤 `docker compose --profile full up -d --build --wait`로 이미지를 다시 빌드해야 합니다.
 
 ## 백엔드 팀원: Spring을 직접 실행할 때
 
