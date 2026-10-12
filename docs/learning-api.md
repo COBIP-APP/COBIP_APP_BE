@@ -107,12 +107,12 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 | 요청 `question.type` | 저장 응답 `questionType` | `question.answer` | 풀이 시 답안 필드 |
 | --- | --- | --- | --- |
 | `multiple_choice` | `MULTIPLE_CHOICE` | 보기 번호 문자열, 예: `"2"` | `selectedChoiceKey` |
-| `ox` | `OX` | `"O"` 또는 `"X"` | `selectedChoiceKey` |
+| `ox` | `OX` | `"1"`/`"O"` 또는 `"2"`/`"X"` | `selectedChoiceKey` |
 | `short_answer` | `SHORT_ANSWER` | 단답 정답 | `answerText` |
 | `blank` | `FILL_BLANK` | 빈칸 정답 | `answerText` |
 | `descriptive` | `DESCRIPTIVE` | 모범 답안 | `answerText` |
 
-`clientRequestId`는 문제별 UUID v4로 생성하고 저장 재시도에 같은 값을 사용한다. AI의 `question.id`는 임시 번호라 버리고 DB가 새 `id`를 발급한다. `초급`·`중급`·`고급`은 각각 `EASY`·`NORMAL`·`HARD`로 바뀐다. Java·Python·JavaScript 주제는 언어 ID에도 연결한다. 다른 `category` 문자열도 저장할 수 있지만 현재는 모두 상위 `CODING_PROBLEM` 분류로 저장하므로 세부 주제 문자열은 보존되지 않는다. 목록에서 주제별 필터가 필요해지면 분류 매핑을 확장해야 한다. `references`와 AI 임시 ID는 저장하지 않으며, `gradingKeywords`는 평가 기준으로 저장한다.
+`clientRequestId`는 문제별 UUID v4로 생성하고 저장 재시도에 같은 값을 사용한다. AI의 `question.id`는 임시 번호라 버리고 DB가 새 `id`를 발급한다. OX 정답 `"1"`과 `"2"`는 저장할 때 각각 `"O"`와 `"X"`로 바뀌며, 풀이 제출의 `selectedChoiceKey`는 `"O"` 또는 `"X"`를 사용한다. `초급`·`중급`·`고급`은 각각 `EASY`·`NORMAL`·`HARD`로 바뀐다. Java·Python·JavaScript 주제는 언어 ID에도 연결한다. 다른 `category` 문자열도 저장할 수 있지만 현재는 모두 상위 `CODING_PROBLEM` 분류로 저장하므로 세부 주제 문자열은 보존되지 않는다. 목록에서 주제별 필터가 필요해지면 분류 매핑을 확장해야 한다. `references`와 AI 임시 ID는 저장하지 않으며, `gradingKeywords`는 평가 기준으로 저장한다.
 
 ```json
 {

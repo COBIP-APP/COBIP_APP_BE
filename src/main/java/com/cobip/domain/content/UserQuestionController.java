@@ -92,10 +92,11 @@ class UserQuestionController {
             }
             choices = objectMapper.valueToTree(normalized);
         } else if ("OX".equals(type)) {
-            String oxAnswer = question.answer().trim().toUpperCase(Locale.ROOT);
-            if (!"O".equals(oxAnswer) && !"X".equals(oxAnswer)) {
-                throw invalid("OX answer must be O or X.");
-            }
+            String oxAnswer = switch (question.answer().trim().toUpperCase(Locale.ROOT)) {
+                case "1", "O" -> "O";
+                case "2", "X" -> "X";
+                default -> throw invalid("OX answer must be 1, 2, O or X.");
+            };
             if (!question.options().isEmpty() && question.options().stream()
                     .noneMatch(option -> option != null && oxAnswer.equals(
                             option.replaceFirst("^\\s*\\d+[.)]\\s*", "").trim().toUpperCase(Locale.ROOT)))) {
