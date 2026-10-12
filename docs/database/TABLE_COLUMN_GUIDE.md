@@ -141,7 +141,7 @@ SQL은 `category_id`와 `language_id`의 조합 자체가 업무적으로 적절
 - `answer_text` (NULL 가능): 코드 해석 등 글로 작성한 답안.
 - `source_code` (NULL 가능): 코드 작성형에서 제출한 소스 코드.
 - `grading_status`: `PENDING`(대기)·`COMPLETED`(완료)·`FAILED`(채점 실패). 기본값은 `PENDING`.
-- `grading_method` (NULL 가능): `DB`(정답 비교)·`AI`(AI 채점)·`RULE_FALLBACK`(규칙 기반 대체 채점).
+- `grading_method` (NULL 가능): 객관식 DB 채점은 `DB`. 현재 AI 채점은 결과가 완료되어도 `NULL`로 둔다.
 - `score` (NULL 가능): 0~100점의 최종 점수. 채점 완료 전에는 비울 수 있다.
 - `feedback` (NULL 가능): 사용자에게 전달할 채점 의견.
 - `criteria_results` (NULL 가능): 평가 기준별 판단 결과를 담는 JSON 배열. 세부 구조는 AI 응답 규격과 맞춰야 한다.
@@ -149,7 +149,7 @@ SQL은 `category_id`와 `language_id`의 조합 자체가 업무적으로 적절
 - `submitted_at`: 사용자가 답을 제출한 시각.
 - `graded_at` (NULL 가능): 채점이 끝난 시각.
 
-답안 세 칸(`selected_choice_key`, `answer_text`, `source_code`) 중 **정확히 하나만** 채워야 한다. `COMPLETED`라면 채점 방법·점수·채점 시각이 있어야 한다. 객관식은 저장된 정답과 비교하고, 다른 유형은 합의한 AI 응답을 반영한다. 현재 SQL에는 Docker 실행 결과나 테스트 케이스 테이블이 없다.
+답안 세 칸(`selected_choice_key`, `answer_text`, `source_code`) 중 **정확히 하나만** 채워야 한다. `COMPLETED`라면 점수·채점 시각이 있어야 한다. 채점 방법은 비어 있을 수 있다. 객관식은 저장된 정답과 비교하고, 다른 유형은 합의한 AI 응답을 반영한다. 현재 SQL에는 Docker 실행 결과나 테스트 케이스 테이블이 없다.
 
 ## 9. `user_progress` — 회원별 챕터 진행 상태
 

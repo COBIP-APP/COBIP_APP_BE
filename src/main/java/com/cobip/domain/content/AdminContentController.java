@@ -111,12 +111,14 @@ class AdminContentController {
         if (request.relatedSectionId() != null && request.relatedTemplateId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A section requires a related template.");
         }
-        if (request.choiceOptions() != null && !request.choiceOptions().isArray()
-                || request.gradingCriteria() != null && !request.gradingCriteria().isArray()) {
+        if (request.choiceOptions() != null && !request.choiceOptions().isNull() && !request.choiceOptions().isArray()
+                || request.gradingCriteria() != null && !request.gradingCriteria().isNull()
+                    && !request.gradingCriteria().isArray()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choices and criteria must be arrays.");
         }
         if ("MULTIPLE_CHOICE".equals(request.questionType())
-                && (request.choiceOptions() == null || request.choiceOptions().isEmpty()
+                && (request.choiceOptions() == null || request.choiceOptions().isNull()
+                    || request.choiceOptions().isEmpty()
                     || request.correctChoiceKey() == null || request.correctChoiceKey().isBlank())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Multiple choice requires choices and an answer key.");
         }

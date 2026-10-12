@@ -11,6 +11,8 @@ COBIA Flutter 앱의 Spring Boot API입니다. 로컬 개발에서는 Docker Com
 5. `docker compose --profile full up -d --build --wait`로 백엔드·PostgreSQL·Redis를 켭니다.
 6. PC에서 [Swagger UI](http://localhost:8080/swagger-ui.html)를 열어 API를 확인합니다. 같은 PC의 Android 에뮬레이터에서는 API 주소로 `http://10.0.2.2:8080`을 사용합니다.
 
+AI 기능은 기본적으로 `https://ai.cobip.tech`를 호출합니다. 다른 AI 서버를 사용할 때만 `.env`의 `AI_SERVER_URL`을 바꾸고 `docker compose --profile full up -d --build --wait`로 앱을 다시 만듭니다. AI API 상세 흐름은 [학습 API 명세](docs/learning-api.md)를 참고하세요. AI 채점 응답에 점수·피드백·정오답 값이 정상적으로 있으면 완료로 저장하며 `gradingMethod`는 요구하지 않습니다.
+
 명령이 실패하거나 Spring을 직접 실행해야 한다면 아래 상세 안내를 참고하세요.
 
 ## Flutter 팀원: 처음 실행

@@ -27,7 +27,9 @@ record SubmissionResponse(
         JsonNode criteriaResults,
         String aiModelVersion,
         OffsetDateTime submittedAt,
-        OffsetDateTime gradedAt
+        OffsetDateTime gradedAt,
+        String correctAnswer,
+        String explanation
 ) {
 }
 

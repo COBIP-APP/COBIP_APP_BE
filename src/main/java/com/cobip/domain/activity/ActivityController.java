@@ -1,10 +1,14 @@
 package com.cobip.domain.activity;
 
+import com.cobip.ai.AiClient;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,9 +31,11 @@ import org.springframework.web.server.ResponseStatusException;
 class ActivityController {
 
     private final ActivityRepository activityRepository;
+    private final AiClient aiClient;
 
-    ActivityController(ActivityRepository activityRepository) {
+    ActivityController(ActivityRepository activityRepository, AiClient aiClient) {
         this.activityRepository = activityRepository;
+        this.aiClient = aiClient;
     }
 
     @PostMapping("/questions/{questionId}/submissions")
@@ -53,16 +59,36 @@ class ActivityController {
                 .filter(ActivityRepository.QuestionAnswerRow::published)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found."));
         requireMatchingAnswer(question.questionType(), request);
+        if ("CODE_WRITING".equals(question.questionType()) && !"JAVA".equalsIgnoreCase(question.languageCode())) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "AI code grading currently supports Java only.");
+        }
+        if ("CODE_EXPLANATION".equals(question.questionType())
+                && blankToNull(question.referenceAnswer()) == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "A reference answer is required for AI grading.");
+        }
 
         ActivityRepository.GradingDecision grading = decideGrading(question, request);
 
-        return activityRepository.createSubmission(
+        SubmissionResponse submission = activityRepository.createSubmission(
                 request.userId(),
                 questionId,
                 blankToNull(request.selectedChoiceKey()),
                 blankToNull(request.answerText()),
                 blankToNull(request.sourceCode()),
                 grading);
+        if ("MULTIPLE_CHOICE".equals(question.questionType())) {
+            return submission;
+        }
+        ActivityRepository.GradingDecision result;
+        try {
+            result = "CODE_WRITING".equals(question.questionType())
+                    ? gradeJava(question, request.sourceCode())
+                    : gradeExplanation(question, request.answerText());
+        } catch (RuntimeException exception) {
+            result = new ActivityRepository.GradingDecision(
+                    "FAILED", null, null, "AI 채점 서비스를 사용할 수 없습니다. 다시 제출해주세요.", null);
+        }
+        return activityRepository.finishSubmission(submission.id(), result);
     }
 
     @GetMapping("/questions/{questionId}/submissions/latest")
@@ -180,6 +206,64 @@ class ActivityController {
                 null,
                 null,
                 null);
+    }
+
+    private ActivityRepository.GradingDecision gradeJava(ActivityRepository.QuestionAnswerRow question, String code) {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("question", fullQuestion(question));
+        request.put("code", code);
+        JsonNode criteria = question.gradingCriteria();
+        if (criteria != null && !criteria.isEmpty()) {
+            if (!criteria.isArray()) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Question criteria must be an array of strings.");
+            }
+            for (JsonNode item : criteria) {
+                if (!item.isTextual()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Question criteria must be strings.");
+                }
+            }
+            request.put("criteria", criteria);
+        }
+        JsonNode result = aiClient.post("/ai/java/grade", request);
+        return gradedDecision(result, "is_correct");
+    }
+
+    private ActivityRepository.GradingDecision gradeExplanation(
+            ActivityRepository.QuestionAnswerRow question, String answer) {
+        Map<String, Object> aiQuestion = new LinkedHashMap<>();
+        aiQuestion.put("questionId", question.questionId().toString());
+        aiQuestion.put("type", "descriptive");
+        aiQuestion.put("question", fullQuestion(question));
+        aiQuestion.put("choices", List.of());
+        aiQuestion.put("answer", question.referenceAnswer());
+        aiQuestion.put("explanation", question.explanation() == null ? "" : question.explanation());
+        aiQuestion.put("difficulty", switch (question.difficulty()) {
+            case "HARD" -> "advanced";
+            case "NORMAL" -> "intermediate";
+            default -> "beginner";
+        });
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("featureName", question.languageCode() == null ? "COBIA" : question.languageCode());
+        request.put("question", aiQuestion);
+        request.put("userAnswer", answer);
+        return gradedDecision(aiClient.post("/ai/quiz/grade", request), "isCorrect");
+    }
+
+    private String fullQuestion(ActivityRepository.QuestionAnswerRow question) {
+        return blankToNull(question.codeSnippet()) == null
+                ? question.prompt() : question.prompt() + "\n\n" + question.codeSnippet();
+    }
+
+    private ActivityRepository.GradingDecision gradedDecision(JsonNode result, String correctField) {
+        JsonNode score = result.path("score");
+        String feedback = result.path("feedback").asText();
+        if (!score.isNumber() || score.decimalValue().compareTo(BigDecimal.ZERO) < 0
+                || score.decimalValue().compareTo(BigDecimal.valueOf(100)) > 0 || feedback.isBlank()
+                || !result.path(correctField).isBoolean()) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI grading response is incomplete.");
+        }
+        return new ActivityRepository.GradingDecision(
+                "COMPLETED", null, score.decimalValue(), feedback, OffsetDateTime.now());
     }
 
     private int answerCount(SubmissionCreateRequest request) {

@@ -139,10 +139,12 @@ class AdminContentRepository {
                 .addValue("languageId", request.languageId())
                 .addValue("questionType", request.questionType()).addValue("prompt", request.prompt())
                 .addValue("codeSnippet", request.codeSnippet())
-                .addValue("choiceOptions", request.choiceOptions() == null ? null : request.choiceOptions().toString())
+                .addValue("choiceOptions", request.choiceOptions() == null || request.choiceOptions().isNull()
+                        ? null : request.choiceOptions().toString())
                 .addValue("correctChoiceKey", request.correctChoiceKey())
                 .addValue("referenceAnswer", request.referenceAnswer())
-                .addValue("gradingCriteria", request.gradingCriteria() == null ? null : request.gradingCriteria().toString())
+                .addValue("gradingCriteria", request.gradingCriteria() == null || request.gradingCriteria().isNull()
+                        ? null : request.gradingCriteria().toString())
                 .addValue("explanation", request.explanation()).addValue("difficulty", request.difficulty())
                 .addValue("passScore", request.passScore()).addValue("displayOrder", request.displayOrder());
     }
