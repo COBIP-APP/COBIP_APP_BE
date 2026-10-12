@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,6 +21,22 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 class ContentRepository {
+
+    private static final String QUESTION_SELECT = """
+            SELECT q.question_id, q.category_id, c.code AS category_code, c.name AS category_name,
+                   q.related_template_id, q.related_section_id,
+                   q.language_id, l.code AS language_code, l.name AS language_name,
+                   q.created_by, u.nickname AS creator_nickname,
+                   q.question_type, q.prompt, q.code_snippet, q.choice_options,
+                   CASE WHEN :revealExplanation THEN q.explanation ELSE NULL END AS explanation,
+                   q.difficulty, q.pass_score, q.display_order, q.is_published,
+                   q.created_at, q.updated_at
+            FROM questions q
+            JOIN categories c ON c.category_id = q.category_id
+            JOIN users u ON u.user_id = q.created_by
+            LEFT JOIN languages l ON l.language_id = q.language_id
+            WHERE 1 = 1
+            """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -104,51 +121,78 @@ class ContentRepository {
             Long sectionId,
             boolean publishedOnly
     ) {
-        QueryParts query = new QueryParts("""
-                SELECT q.question_id, q.category_id, c.code AS category_code, c.name AS category_name,
-                       q.related_template_id, q.related_section_id,
-                       q.language_id, l.code AS language_code, l.name AS language_name,
-                       q.question_type, q.prompt, q.code_snippet, q.choice_options,
-                       CASE WHEN :publishedOnly THEN NULL ELSE q.explanation END AS explanation,
-                       q.difficulty, q.pass_score, q.display_order, q.is_published,
-                       q.created_at, q.updated_at
-                FROM questions q
-                JOIN categories c ON c.category_id = q.category_id
-                LEFT JOIN languages l ON l.language_id = q.language_id
-                WHERE 1 = 1
-                """);
+        QueryParts query = new QueryParts(QUESTION_SELECT);
         query.add("AND q.category_id = :categoryId", "categoryId", categoryId);
         query.add("AND q.language_id = :languageId", "languageId", languageId);
         query.add("AND q.related_template_id = :templateId", "templateId", templateId);
         query.add("AND q.related_section_id = :sectionId", "sectionId", sectionId);
-        query.param("publishedOnly", publishedOnly);
+        query.param("revealExplanation", !publishedOnly);
         query.add("AND q.is_published = true", publishedOnly);
         query.orderBy("ORDER BY q.display_order, q.question_id");
 
         return jdbcTemplate.query(query.sql(), query.params(), (rs, rowNum) -> mapQuestion(rs));
     }
 
-    Optional<QuestionResponse> findQuestion(Long questionId, boolean publishedOnly) {
-        QueryParts query = new QueryParts("""
-                SELECT q.question_id, q.category_id, c.code AS category_code, c.name AS category_name,
-                       q.related_template_id, q.related_section_id,
-                       q.language_id, l.code AS language_code, l.name AS language_name,
-                       q.question_type, q.prompt, q.code_snippet, q.choice_options,
-                       CASE WHEN :publishedOnly THEN NULL ELSE q.explanation END AS explanation,
-                       q.difficulty, q.pass_score, q.display_order, q.is_published,
-                       q.created_at, q.updated_at
-                FROM questions q
-                JOIN categories c ON c.category_id = q.category_id
-                LEFT JOIN languages l ON l.language_id = q.language_id
-                WHERE q.question_id = :questionId
-                """);
-        query.param("questionId", questionId);
-        query.param("publishedOnly", publishedOnly);
-        query.add("AND q.is_published = true", publishedOnly);
+    Optional<QuestionResponse> findQuestion(Long questionId, boolean publishedOnly, Long viewerId) {
+        QueryParts query = new QueryParts(QUESTION_SELECT);
+        query.add("AND q.question_id = :questionId", "questionId", questionId);
+        query.param("revealExplanation", !publishedOnly);
+        if (publishedOnly) {
+            query.param("viewerId", viewerId);
+            query.add("AND (q.is_published = true OR (q.created_by = :viewerId AND q.client_request_id IS NOT NULL))", true);
+        }
 
         return jdbcTemplate.query(query.sql(), query.params(), (rs, rowNum) -> mapQuestion(rs))
                 .stream()
                 .findFirst();
+    }
+
+    List<QuestionResponse> findOwnedQuestions(Long userId) {
+        QueryParts query = new QueryParts(QUESTION_SELECT);
+        query.add("AND q.created_by = :userId", "userId", userId);
+        query.add("AND q.client_request_id IS NOT NULL", true);
+        query.param("revealExplanation", true);
+        query.orderBy("ORDER BY q.created_at DESC, q.question_id DESC");
+        return jdbcTemplate.query(query.sql(), query.params(), (rs, rowNum) -> mapQuestion(rs));
+    }
+
+    SavedQuestion saveOwnedQuestion(Long userId, UserQuestionDraft draft) {
+        String sql = """
+                INSERT INTO questions (
+                    category_id, created_by, client_request_id, language_id, question_type,
+                    prompt, choice_options, correct_choice_key, reference_answer,
+                    grading_criteria, explanation, difficulty, pass_score, display_order
+                ) VALUES (
+                    (SELECT category_id FROM categories WHERE code = 'CODING_PROBLEM'),
+                    :userId, :clientRequestId,
+                    (SELECT language_id FROM languages WHERE code = :languageCode),
+                    :questionType, :prompt, CAST(:choiceOptions AS jsonb), :correctChoiceKey,
+                    :referenceAnswer, CAST(:gradingCriteria AS jsonb), :explanation,
+                    :difficulty, 70, 1
+                )
+                ON CONFLICT (created_by, client_request_id) WHERE client_request_id IS NOT NULL
+                DO NOTHING
+                RETURNING question_id
+                """;
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("userId", userId)
+                .addValue("clientRequestId", draft.clientRequestId())
+                .addValue("languageCode", draft.languageCode())
+                .addValue("questionType", draft.questionType())
+                .addValue("prompt", draft.prompt())
+                .addValue("choiceOptions", draft.choiceOptions() == null ? null : draft.choiceOptions().toString())
+                .addValue("correctChoiceKey", draft.correctChoiceKey())
+                .addValue("referenceAnswer", draft.referenceAnswer())
+                .addValue("gradingCriteria", draft.gradingCriteria() == null ? null : draft.gradingCriteria().toString())
+                .addValue("explanation", draft.explanation())
+                .addValue("difficulty", draft.difficulty());
+        List<Long> inserted = jdbcTemplate.query(sql, params, (rs, rowNum) -> rs.getLong(1));
+        if (!inserted.isEmpty()) return new SavedQuestion(inserted.get(0), true);
+        Long existingId = jdbcTemplate.queryForObject("""
+                SELECT question_id FROM questions
+                WHERE created_by = :userId AND client_request_id = :clientRequestId
+                """, params, Long.class);
+        return new SavedQuestion(existingId, false);
     }
 
     private TemplateSummaryResponse mapTemplateSummary(ResultSet rs) throws SQLException {
@@ -249,6 +293,8 @@ class ContentRepository {
                 rs.getObject("language_id", Long.class),
                 rs.getString("language_code"),
                 rs.getString("language_name"),
+                rs.getLong("created_by"),
+                rs.getString("creator_nickname"),
                 rs.getString("question_type"),
                 rs.getString("prompt"),
                 rs.getString("code_snippet"),
@@ -306,6 +352,8 @@ class ContentRepository {
             Integer displayOrder
     ) {
     }
+
+    record SavedQuestion(Long id, boolean created) {}
 
     private static final class QueryParts {
         private final StringBuilder sql;

@@ -34,6 +34,7 @@ class ActivityRepository {
     Optional<QuestionAnswerRow> findQuestionAnswer(Long questionId) {
         String sql = """
                 SELECT q.question_id, q.question_type, q.correct_choice_key, q.is_published,
+                       q.created_by, q.client_request_id IS NOT NULL AS user_saved,
                        q.prompt, q.code_snippet, q.reference_answer, q.grading_criteria,
                        q.explanation, q.difficulty, l.code AS language_code
                 FROM questions q
@@ -48,6 +49,8 @@ class ActivityRepository {
                         rs.getString("question_type"),
                         rs.getString("correct_choice_key"),
                         rs.getBoolean("is_published"),
+                        rs.getLong("created_by"),
+                        rs.getBoolean("user_saved"),
                         rs.getString("prompt"),
                         rs.getString("code_snippet"),
                         rs.getString("reference_answer"),
@@ -99,7 +102,7 @@ class ActivityRepository {
         String sql = """
                 SELECT s.*,
                        CASE WHEN s.grading_status = 'COMPLETED' THEN
-                           CASE WHEN q.question_type = 'MULTIPLE_CHOICE'
+                           CASE WHEN q.question_type IN ('MULTIPLE_CHOICE', 'OX')
                                THEN q.correct_choice_key ELSE q.reference_answer END
                        END AS correct_answer,
                        CASE WHEN s.grading_status = 'COMPLETED' THEN q.explanation END AS explanation
@@ -134,7 +137,7 @@ class ActivityRepository {
         String sql = """
                 SELECT s.*,
                        CASE WHEN s.grading_status = 'COMPLETED' THEN
-                           CASE WHEN q.question_type = 'MULTIPLE_CHOICE'
+                           CASE WHEN q.question_type IN ('MULTIPLE_CHOICE', 'OX')
                                THEN q.correct_choice_key ELSE q.reference_answer END
                        END AS correct_answer,
                        CASE WHEN s.grading_status = 'COMPLETED' THEN q.explanation END AS explanation
@@ -337,6 +340,8 @@ class ActivityRepository {
             String questionType,
             String correctChoiceKey,
             Boolean published,
+            Long createdBy,
+            Boolean userSaved,
             String prompt,
             String codeSnippet,
             String referenceAnswer,

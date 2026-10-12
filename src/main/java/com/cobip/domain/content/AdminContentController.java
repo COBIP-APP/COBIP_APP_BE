@@ -116,7 +116,7 @@ class AdminContentController {
                     && !request.gradingCriteria().isArray()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choices and criteria must be arrays.");
         }
-        if ("MULTIPLE_CHOICE".equals(request.questionType())
+        if (("MULTIPLE_CHOICE".equals(request.questionType()) || "OX".equals(request.questionType()))
                 && (request.choiceOptions() == null || request.choiceOptions().isNull()
                     || request.choiceOptions().isEmpty()
                     || request.correctChoiceKey() == null || request.correctChoiceKey().isBlank())) {

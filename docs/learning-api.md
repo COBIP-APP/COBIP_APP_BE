@@ -20,9 +20,9 @@
 | GET | `/api/templates/{templateId}` | 공개된 챕터 상세와 목차·미디어 |
 | GET | `/api/templates/{templateId}/sections` | 공개된 챕터 목차 트리 |
 | GET | `/api/questions?categoryId=&languageId=&templateId=&sectionId=` | 공개된 문제 목록. 필터는 선택 |
-| GET | `/api/questions/{questionId}` | 공개된 문제 상세. 정답·모범 답안은 응답하지 않음 |
+| GET | `/api/questions/{questionId}` | 공개된 문제 또는 본인이 저장한 비공개 문제 상세. 정답·모범 답안은 응답하지 않음 |
 
-템플릿·문제 조회의 `publishedOnly=false`는 관리자만 사용한다. 관리자는 이를 이용해 비공개 초안도 조회한다. 일반 사용자가 이 값을 보내면 `403`이다. 일반 사용자는 비공개 템플릿의 목차를 직접 조회할 수도 없다. 공개 문제 응답의 `explanation`은 정답 유출을 막기 위해 `null`이다. DB 초기값에는 언어·카테고리만 있고 **템플릿·목차·문제는 자동 생성되지 않는다.**
+템플릿·문제 조회의 `publishedOnly=false`는 관리자만 사용한다. 관리자는 이를 이용해 비공개 초안도 조회한다. 일반 사용자가 이 값을 보내면 `403`이다. 일반 사용자는 비공개 템플릿의 목차를 직접 조회할 수도 없다. 일반 문제 상세 응답의 `explanation`은 정답 유출을 막기 위해 `null`이다. 문제 응답에는 `createdBy`와 `creatorNickname`이 포함된다. 일반 문제 목록은 공개 문제만 반환하므로 본인이 저장한 비공개 문제는 아래의 내 문제 목록에서 조회한다. DB 초기값에는 언어·카테고리만 있고 **템플릿·목차·문제는 자동 생성되지 않는다.**
 
 ## 사용자 화면: 계정과 활동
 
@@ -30,6 +30,8 @@
 | --- | --- | --- | --- |
 | GET | `/api/users/me` | 없음 | `200` 내 `userId`, `email`, `nickname`, `role`, `createdAt` |
 | GET | `/api/users/me/progress` | 없음 | `200` 내 학습 배열. 기록 없으면 `[]` |
+| POST | `/api/users/me/questions` | AI 생성 문제와 `clientRequestId` | `201` 새 문제, 같은 요청 재시도는 `200` 기존 문제 |
+| GET | `/api/users/me/questions` | 없음 | `200` 내가 저장한 문제 배열. 기록 없으면 `[]` |
 | POST | `/api/questions/{questionId}/submissions` | 답안 객체 | `201` 제출 객체 |
 | GET | `/api/questions/{questionId}/submissions/latest?userId={userId}` | 없음 | `200` 최신 제출, 없으면 `404` |
 | PUT | `/api/users/{userId}/progress/templates/{templateId}` | 진도 객체 | `200` 저장된 진도 |
@@ -80,9 +82,64 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 
 사용자·템플릿 조합당 한 행을 생성·갱신한다. 공개 템플릿이어야 하고 `lastSectionId`는 같은 템플릿의 목차여야 한다. `completed:true`는 최초 완료 시각을 기록하고, `false`는 완료를 해제하며, `null` 또는 누락은 기존 완료 상태를 유지한다. 기존 기록에서 `lastSectionId`를 누락하거나 `null`로 보내면 **기존 위치를 유지**한다. 새 기록에서는 위치가 `null`로 시작한다. 응답은 `userId`, `templateId`, `lastSectionId`, `startedAt`, `lastStudiedAt`, `completedAt`이다. 문제 제출만으로 진도가 자동 갱신되지는 않는다.
 
+### AI 생성 문제 저장과 내 문제 목록
+
+`POST /api/users/me/questions`는 Flutter가 받은 AI 생성 문제를 **JWT 사용자**의 비공개 문제로 저장한다. `Authorization: Bearer <accessToken>`을 보내고, `userId`나 작성자 ID는 본문에 넣지 않는다. 응답은 `{data:...}`로 감싸지 않은 문제 객체다. 신규 저장은 `201`, 동일 사용자가 동일한 `clientRequestId`로 재시도하면 새 행을 만들지 않고 기존 객체와 `200`을 반환한다.
+
+```json
+{
+  "clientRequestId": "ca127cf6-831f-40fc-bdea-61cdd4d38c6a",
+  "category": "Infrastructure",
+  "difficulty": "중급",
+  "question": {
+    "id": 1,
+    "type": "multiple_choice",
+    "question": "AWS의 객체 스토리지 서비스는?",
+    "options": ["1. EC2", "2. S3", "3. RDS", "4. Lambda"],
+    "answer": "2",
+    "explanation": "S3는 객체 스토리지 서비스입니다.",
+    "references": [],
+    "gradingKeywords": []
+  }
+}
+```
+
+| 요청 `question.type` | 저장 응답 `questionType` | `question.answer` | 풀이 시 답안 필드 |
+| --- | --- | --- | --- |
+| `multiple_choice` | `MULTIPLE_CHOICE` | 보기 번호 문자열, 예: `"2"` | `selectedChoiceKey` |
+| `ox` | `OX` | `"O"` 또는 `"X"` | `selectedChoiceKey` |
+| `short_answer` | `SHORT_ANSWER` | 단답 정답 | `answerText` |
+| `blank` | `FILL_BLANK` | 빈칸 정답 | `answerText` |
+| `descriptive` | `DESCRIPTIVE` | 모범 답안 | `answerText` |
+
+`clientRequestId`는 문제별 UUID v4로 생성하고 저장 재시도에 같은 값을 사용한다. AI의 `question.id`는 임시 번호라 버리고 DB가 새 `id`를 발급한다. `초급`·`중급`·`고급`은 각각 `EASY`·`NORMAL`·`HARD`로 바뀐다. Java·Python·JavaScript 주제는 언어 ID에도 연결한다. 다른 `category` 문자열도 저장할 수 있지만 현재는 모두 상위 `CODING_PROBLEM` 분류로 저장하므로 세부 주제 문자열은 보존되지 않는다. 목록에서 주제별 필터가 필요해지면 분류 매핑을 확장해야 한다. `references`와 AI 임시 ID는 저장하지 않으며, `gradingKeywords`는 평가 기준으로 저장한다.
+
+```json
+{
+  "id": 501,
+  "categoryId": 3,
+  "languageId": null,
+  "relatedTemplateId": null,
+  "relatedSectionId": null,
+  "createdBy": 1,
+  "creatorNickname": "학습자",
+  "questionType": "MULTIPLE_CHOICE",
+  "prompt": "AWS의 객체 스토리지 서비스는?",
+  "codeSnippet": null,
+  "choiceOptions": [{"key":"1","text":"EC2"},{"key":"2","text":"S3"}],
+  "explanation": "S3는 객체 스토리지 서비스입니다.",
+  "difficulty": "NORMAL",
+  "passScore": 70,
+  "published": false,
+  "media": []
+}
+```
+
+위 응답은 주요 필드 예시다. 실제 `categoryId`, `id`는 DB에서 발급되며 `choiceOptions`에는 요청한 보기 전부가 들어간다. `GET /api/users/me/questions`는 같은 형식의 객체 배열을 생성 시각 최신순으로 반환하며 기록이 없으면 `[]`다. 작성자는 `GET /api/questions/{id}`로 자기 비공개 문제의 **정답을 제외한** 상세를 보고 기존 제출 API로 풀 수 있다. 정답과 해설은 채점이 `COMPLETED`된 제출 응답에서 확인한다. 내 문제 목록과 저장 직후 응답에는 등록한 해설이 포함된다.
+
 ### 문제 제출과 채점
 
-`POST /api/questions/{questionId}/submissions`에는 현재 아래 세 답안 중 **정확히 하나**와 `userId`를 보낸다. 재제출할 때마다 새 행을 만든다.
+`POST /api/questions/{questionId}/submissions`에는 아래 세 답안 중 **정확히 하나**와 `userId`를 보낸다. 재제출할 때마다 새 행을 만든다. 공개 문제와 본인이 저장한 비공개 문제를 풀 수 있다.
 
 ```json
 {"userId":1,"selectedChoiceKey":"A"}
@@ -90,17 +147,17 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 
 | 필드 | 사용 유형 |
 | --- | --- |
-| `selectedChoiceKey` | 객관식 선택지 키 |
-| `answerText` | 코드 해석·설명형 답안 |
+| `selectedChoiceKey` | 객관식·OX 선택지 키. 생성 객관식은 `"1"`~`"10"`, OX는 `"O"` 또는 `"X"` |
+| `answerText` | 코드 해석·단답형·빈칸형·서술형 답안 |
 | `sourceCode` | 코드 작성형 답안 |
 
-제출 응답은 `id`, `userId`, `questionId`, 세 답안 필드, `gradingStatus`, `gradingMethod`, `score`, `feedback`, `criteriaResults`, `aiModelVersion`, `submittedAt`, `gradedAt`, `correctAnswer`, `explanation`을 담는다. `correctAnswer`와 `explanation`은 `COMPLETED`일 때만 채워지고 `PENDING`·`FAILED`에서는 `null`이다. 문제 유형과 답안 필드가 맞지 않으면 `400`이다. 객관식은 DB 정답 키와 비교해 `COMPLETED`·`DB`·100점 또는 0점으로 즉시 저장한다. 객관식 선택 키는 저장된 `correctChoiceKey`와 같은 체계여야 한다. AI 생성 객관식은 문자열 `"1"`, `"2"`처럼 숫자 키를 사용한다.
+제출 응답은 `id`, `userId`, `questionId`, 세 답안 필드, `gradingStatus`, `gradingMethod`, `score`, `feedback`, `criteriaResults`, `aiModelVersion`, `submittedAt`, `gradedAt`, `correctAnswer`, `explanation`을 담는다. `correctAnswer`와 `explanation`은 `COMPLETED`일 때만 채워지고 `PENDING`·`FAILED`에서는 `null`이다. 문제 유형과 답안 필드가 맞지 않으면 `400`이다. 객관식·OX는 DB 정답 키와 비교해 `COMPLETED`·`DB`·100점 또는 0점으로 즉시 저장한다.
 
-코드 작성형은 **Java 언어 문제만** AI `/ai/java/grade`로 채점한다. 관리자 `gradingCriteria`가 문자열 배열이면 AI에 `criteria`로 전달하며, 없으면 AI가 기준을 생성한다. Python·JavaScript 코드 작성형은 현재 `422`로 거절한다. 코드 해석형은 문제 지문·제시 코드, 관리자 `referenceAnswer`, 학생 `answerText`를 AI `/ai/quiz/grade`의 `descriptive` 형식으로 전달한다. 코드 해석형에 모범 답안이 없으면 `422`다. 현재 AI 서버는 코드 해석형의 관리자 평가 기준 반영을 보장하지 않는다.
+코드 작성형은 **Java 언어 문제만** AI `/ai/java/grade`로 채점한다. 관리자 `gradingCriteria`가 문자열 배열이면 AI에 `criteria`로 전달하며, 없으면 AI가 기준을 생성한다. Python·JavaScript 코드 작성형은 현재 `422`로 거절한다. 코드 해석형·단답형·빈칸형·서술형은 문제 지문, 모범 답안, 학생 `answerText`를 AI `/ai/quiz/grade`로 전달한다. 코드 해석형과 서술형은 `descriptive`, 단답형은 `short_answer`, 빈칸형은 `fill_blank`로 보낸다. 모범 답안이 없으면 `422`다. 현재 AI 서버는 관리자 평가 기준 반영을 보장하지 않는다.
 
 AI 채점은 제출 행을 `PENDING`으로 만든 뒤 결과를 **같은 행에** 기록한다. 0~100 범위의 숫자 `score`, 비어 있지 않은 `feedback`, 유형에 맞는 boolean 정오답 값(`is_correct` 또는 `isCorrect`)이 오면 `COMPLETED`로 저장한다. AI 채점의 `gradingMethod`는 사용하지 않고 응답과 DB 모두 `null`로 둔다. 객관식의 `gradingMethod=DB`는 유지한다. AI 요청 실패나 필수 채점 결과 누락은 `FAILED`로 기록하고 점수·채점 방식은 비워 둔다. `FAILED`면 사용자가 다시 제출해야 하며, 자동 재시도는 하지 않는다. 다시 제출할 때는 새 행이 만들어진다. AI 점수는 정적 분석 결과로, 실제 코드 실행 결과가 아니다.
 
-최신 제출 조회는 `submittedAt` 내림차순, 같은 시각이면 제출 ID 내림차순으로 한 건을 반환한다. 본인에게 기록이 없으면 `404`다. 제출할 때 문제 공개 여부를 확인하지만, 이미 제출한 기록을 다시 조회할 때는 현재 공개 여부를 확인하지 않는다.
+최신 제출 조회는 `submittedAt` 내림차순, 같은 시각이면 제출 ID 내림차순으로 한 건을 반환한다. 본인에게 기록이 없으면 `404`다. 제출할 때는 공개 문제 또는 본인이 저장한 비공개 문제인지 확인하지만, 이미 제출한 기록을 다시 조회할 때는 현재 공개 여부를 확인하지 않는다.
 
 ### AI 챗봇
 
@@ -135,7 +192,7 @@ AI 채점은 제출 행을 `PENDING`으로 만든 뒤 결과를 **같은 행에*
 
 템플릿 저장 본문은 `categoryId`, `languageId`(선택), `title`, `summary`, `description`, `difficulty`(`EASY|NORMAL|HARD`), `displayOrder`다. 목차 생성 본문은 `parentSectionId`(선택), `title`, `body`(선택), `exampleCode`(선택), `displayOrder`다. 목차 수정에서 부모는 변경할 수 없다. 템플릿 상세는 `GET /api/templates/{templateId}?publishedOnly=false`로 확인한다.
 
-문제 저장 본문은 `categoryId`, `relatedTemplateId`(선택), `relatedSectionId`(선택), `languageId`(선택), `questionType`(`MULTIPLE_CHOICE|CODE_EXPLANATION|CODE_WRITING`), `prompt`, `codeSnippet`(선택), `choiceOptions`(JSON 배열 또는 null), `correctChoiceKey`(선택), `referenceAnswer`(선택), `gradingCriteria`(JSON 배열 또는 null), `explanation`(선택), `difficulty`, `passScore`(0~100), `displayOrder`다. 객관식은 비어 있지 않은 `choiceOptions`와 `correctChoiceKey`가 필요하다. 관련 목차를 지정하면 관련 템플릿도 지정해야 하고, 그 목차가 해당 템플릿에 속해야 한다. 문제 목록은 `GET /api/questions?publishedOnly=false`, 정답을 포함한 상세는 관리자 전용 `GET /api/admin/questions/{questionId}`로 본다.
+문제 저장 본문은 `categoryId`, `relatedTemplateId`(선택), `relatedSectionId`(선택), `languageId`(선택), `questionType`(`MULTIPLE_CHOICE|OX|SHORT_ANSWER|FILL_BLANK|DESCRIPTIVE|CODE_EXPLANATION|CODE_WRITING`), `prompt`, `codeSnippet`(선택), `choiceOptions`(JSON 배열 또는 null), `correctChoiceKey`(선택), `referenceAnswer`(선택), `gradingCriteria`(JSON 배열 또는 null), `explanation`(선택), `difficulty`, `passScore`(0~100), `displayOrder`다. 객관식·OX는 비어 있지 않은 `choiceOptions`와 `correctChoiceKey`가 필요하다. 관련 목차를 지정하면 관련 템플릿도 지정해야 하고, 그 목차가 해당 템플릿에 속해야 한다. 문제 목록은 `GET /api/questions?publishedOnly=false`, 정답을 포함한 상세는 관리자 전용 `GET /api/admin/questions/{questionId}`로 본다.
 
 AI 문제 생성 요청 예시: `{"categoryId":2,"aiCategory":"Infrastructure","domain":"AWS","languageId":null,"relatedTemplateId":null,"relatedSectionId":null,"displayOrder":1}`. 관리자만 호출할 수 있다. AI 서버에는 `MULTIPLE_CHOICE` 한 문제만 요청하며, 응답의 임시 `id`는 버리고 DB가 발급한 ID를 반환한다. 저장된 `choiceOptions`는 `[{"key":"1","text":"첫 번째 보기"}]` 형태의 JSON 배열이다. 생성 직후 `isPublished=false`다. 관리자는 `GET /api/admin/questions/{id}`로 정답·해설을 검토하고 필요하면 `PUT`으로 수정한 뒤 공개한다. AI 응답 오류는 `502`/`504`이고, DB 분류·표시 순서 충돌은 `409`일 수 있다.
 
