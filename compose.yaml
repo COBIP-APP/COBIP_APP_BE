@@ -10,6 +10,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/cobip_app
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       REDIS_HOST: redis
+      AI_SERVER_URL: ${AI_SERVER_URL:-https://ai.cobip.tech}
     volumes:
       - type: bind
         source: ./config/application-local.yml

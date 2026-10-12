@@ -33,8 +33,11 @@ class ActivityRepository {
 
     Optional<QuestionAnswerRow> findQuestionAnswer(Long questionId) {
         String sql = """
-                SELECT question_id, question_type, correct_choice_key, is_published
-                FROM questions
+                SELECT q.question_id, q.question_type, q.correct_choice_key, q.is_published,
+                       q.prompt, q.code_snippet, q.reference_answer, q.grading_criteria,
+                       q.explanation, q.difficulty, l.code AS language_code
+                FROM questions q
+                LEFT JOIN languages l ON l.language_id = q.language_id
                 WHERE question_id = :questionId
                 """;
 
@@ -44,7 +47,14 @@ class ActivityRepository {
                         rs.getLong("question_id"),
                         rs.getString("question_type"),
                         rs.getString("correct_choice_key"),
-                        rs.getBoolean("is_published")))
+                        rs.getBoolean("is_published"),
+                        rs.getString("prompt"),
+                        rs.getString("code_snippet"),
+                        rs.getString("reference_answer"),
+                        readJson(rs.getString("grading_criteria")),
+                        rs.getString("explanation"),
+                        rs.getString("difficulty"),
+                        rs.getString("language_code")))
                 .stream()
                 .findFirst();
     }
@@ -99,6 +109,21 @@ class ActivityRepository {
                 (rs, rowNum) -> mapSubmission(rs))
                 .stream()
                 .findFirst();
+    }
+
+    SubmissionResponse finishSubmission(Long submissionId, GradingDecision grading) {
+        String sql = """
+                UPDATE submissions SET grading_status = :status, grading_method = :method,
+                    score = :score, feedback = :feedback, graded_at = :gradedAt
+                WHERE submission_id = :id
+                """;
+        jdbcTemplate.update(sql, new MapSqlParameterSource("id", submissionId)
+                .addValue("status", grading.status())
+                .addValue("method", grading.method())
+                .addValue("score", grading.score())
+                .addValue("feedback", grading.feedback())
+                .addValue("gradedAt", grading.gradedAt()));
+        return findSubmission(submissionId).orElseThrow();
     }
 
     Optional<SubmissionResponse> findLatestSubmission(Long userId, Long questionId) {
@@ -301,7 +326,14 @@ class ActivityRepository {
             Long questionId,
             String questionType,
             String correctChoiceKey,
-            Boolean published
+            Boolean published,
+            String prompt,
+            String codeSnippet,
+            String referenceAnswer,
+            JsonNode gradingCriteria,
+            String explanation,
+            String difficulty,
+            String languageCode
     ) {
     }
 
