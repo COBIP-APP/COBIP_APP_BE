@@ -85,20 +85,21 @@ SQL은 `category_id`와 `language_id`의 조합 자체가 업무적으로 적절
 
 ## 6. `questions` — 문제 원본
 
-객관식·코드 해석·코드 작성 문제를 한 테이블에 둔다. 문제은행의 독립 문제도, 특정 챕터나 1-1 목차에 붙는 문제도 표현할 수 있다.
+객관식·OX·단답형·빈칸형·서술형·코드 해석·코드 작성 문제를 한 테이블에 둔다. 문제은행의 독립 문제도, 특정 챕터나 1-1 목차에 붙는 문제도 표현할 수 있다.
 
 - `question_id` (PK): 문제 ID.
 - `category_id` (FK): 문제가 속한 `categories.category_id`.
 - `related_template_id` (FK, NULL 가능): 관련 학습 챕터 ID. 독립 문제면 비울 수 있다.
 - `related_section_id` (FK, NULL 가능): 문제가 연결된 목차 항목 ID. 독립 문제 또는 챕터 전체에만 관련되면 비운다.
-- `created_by` (FK): 문제를 등록한 관리자 계정 ID. 관리자 여부는 API에서 확인해야 한다.
+- `created_by` (FK): 문제를 등록한 사용자 또는 관리자 계정 ID. 사용자 저장 문제는 작성자 본인에게만 비공개 조회·제출을 허용한다.
+- `client_request_id` (NULL 가능): Flutter가 생성한 저장 요청 UUID. 사용자별 중복 저장을 막는다. 관리자 문제에는 사용하지 않는다.
 - `language_id` (FK, NULL 가능): 문제의 프로그래밍 언어. 언어와 관계없는 문제는 비울 수 있다.
-- `question_type`: `MULTIPLE_CHOICE`(객관식), `CODE_EXPLANATION`(코드 해석), `CODE_WRITING`(코드 작성) 중 하나.
+- `question_type`: `MULTIPLE_CHOICE`(객관식), `OX`, `SHORT_ANSWER`(단답형), `FILL_BLANK`(빈칸형), `DESCRIPTIVE`(서술형), `CODE_EXPLANATION`(코드 해석), `CODE_WRITING`(코드 작성) 중 하나.
 - `prompt`: 사용자에게 보여줄 문제 지문.
 - `code_snippet` (NULL 가능): 코드 해석형 등에서 읽고 분석할 제시 코드.
-- `choice_options` (NULL 가능): 객관식 보기 목록을 담는 JSON 배열. 보기 객체의 세부 키 형식은 API 구현 시 확정한다.
-- `correct_choice_key` (NULL 가능): 객관식 정답 보기의 키. 정답을 공개하는 API가 아니면 응답에서 제외한다.
-- `reference_answer` (NULL 가능): 코드 해석·작성형의 참고 답안. 일반 사용자에게 제출 전 노출하지 않는다.
+- `choice_options` (NULL 가능): 객관식·OX 보기 목록을 담는 JSON 배열. 각 객체는 `key`, `text`를 가진다.
+- `correct_choice_key` (NULL 가능): 객관식·OX 정답 보기의 키. 정답을 공개하는 API가 아니면 응답에서 제외한다.
+- `reference_answer` (NULL 가능): 단답형·빈칸형·서술형·코드 해석·작성형의 참고 답안. 일반 사용자에게 제출 전 노출하지 않는다.
 - `grading_criteria` (NULL 가능): AI 채점 기준 목록을 담는 JSON 배열. AI가 추출하더라도 공개 전 관리자 검토를 권장한다.
 - `explanation` (NULL 가능): 풀이 후 보여줄 해설.
 - `difficulty`: `EASY`·`NORMAL`·`HARD` 난이도. 기본값은 `EASY`.
@@ -137,7 +138,7 @@ SQL은 `category_id`와 `language_id`의 조합 자체가 업무적으로 적절
 - `submission_id` (PK): 제출 기록 ID.
 - `user_id` (FK): 제출한 회원 ID.
 - `question_id` (FK): 푼 문제 ID.
-- `selected_choice_key` (NULL 가능): 객관식에서 선택한 보기 키.
+- `selected_choice_key` (NULL 가능): 객관식·OX에서 선택한 보기 키.
 - `answer_text` (NULL 가능): 코드 해석 등 글로 작성한 답안.
 - `source_code` (NULL 가능): 코드 작성형에서 제출한 소스 코드.
 - `grading_status`: `PENDING`(대기)·`COMPLETED`(완료)·`FAILED`(채점 실패). 기본값은 `PENDING`.

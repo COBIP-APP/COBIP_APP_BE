@@ -128,9 +128,11 @@ CREATE TABLE questions (
     related_template_id bigint REFERENCES templates (template_id) ON DELETE SET NULL,
     related_section_id bigint,
     created_by bigint NOT NULL REFERENCES users (user_id),
+    client_request_id uuid,
     language_id bigint REFERENCES languages (language_id),
     question_type varchar(30) NOT NULL
-        CHECK (question_type IN ('MULTIPLE_CHOICE', 'CODE_EXPLANATION', 'CODE_WRITING')),
+        CHECK (question_type IN ('MULTIPLE_CHOICE', 'OX', 'SHORT_ANSWER', 'FILL_BLANK',
+                                'DESCRIPTIVE', 'CODE_EXPLANATION', 'CODE_WRITING')),
     prompt text NOT NULL,
     code_snippet text,
     choice_options jsonb,
@@ -162,6 +164,9 @@ CREATE TABLE questions (
 
 CREATE INDEX questions_list_idx
     ON questions (category_id, language_id, is_published, display_order);
+CREATE UNIQUE INDEX questions_owner_request_uq
+    ON questions (created_by, client_request_id)
+    WHERE client_request_id IS NOT NULL;
 CREATE INDEX questions_related_template_idx ON questions (related_template_id);
 CREATE INDEX questions_related_section_idx ON questions (related_section_id, display_order)
     WHERE related_section_id IS NOT NULL;

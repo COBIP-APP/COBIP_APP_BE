@@ -56,13 +56,14 @@ class ActivityController {
         }
 
         ActivityRepository.QuestionAnswerRow question = activityRepository.findQuestionAnswer(questionId)
-                .filter(ActivityRepository.QuestionAnswerRow::published)
+                .filter(row -> row.published() || row.userSaved() && row.createdBy().equals(request.userId()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found."));
         requireMatchingAnswer(question.questionType(), request);
         if ("CODE_WRITING".equals(question.questionType()) && !"JAVA".equalsIgnoreCase(question.languageCode())) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "AI code grading currently supports Java only.");
         }
-        if ("CODE_EXPLANATION".equals(question.questionType())
+        if (List.of("CODE_EXPLANATION", "SHORT_ANSWER", "FILL_BLANK", "DESCRIPTIVE")
+                .contains(question.questionType())
                 && blankToNull(question.referenceAnswer()) == null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "A reference answer is required for AI grading.");
         }
@@ -76,14 +77,14 @@ class ActivityController {
                 blankToNull(request.answerText()),
                 blankToNull(request.sourceCode()),
                 grading);
-        if ("MULTIPLE_CHOICE".equals(question.questionType())) {
+        if ("MULTIPLE_CHOICE".equals(question.questionType()) || "OX".equals(question.questionType())) {
             return submission;
         }
         ActivityRepository.GradingDecision result;
         try {
             result = "CODE_WRITING".equals(question.questionType())
                     ? gradeJava(question, request.sourceCode())
-                    : gradeExplanation(question, request.answerText());
+                    : gradeQuiz(question, request.answerText());
         } catch (RuntimeException exception) {
             result = new ActivityRepository.GradingDecision(
                     "FAILED", null, null, "AI 채점 서비스를 사용할 수 없습니다. 다시 제출해주세요.", null);
@@ -176,8 +177,9 @@ class ActivityController {
 
     private void requireMatchingAnswer(String questionType, SubmissionCreateRequest request) {
         boolean matches = switch (questionType) {
-            case "MULTIPLE_CHOICE" -> blankToNull(request.selectedChoiceKey()) != null;
-            case "CODE_EXPLANATION" -> blankToNull(request.answerText()) != null;
+            case "MULTIPLE_CHOICE", "OX" -> blankToNull(request.selectedChoiceKey()) != null;
+            case "CODE_EXPLANATION", "SHORT_ANSWER", "FILL_BLANK", "DESCRIPTIVE" ->
+                    blankToNull(request.answerText()) != null;
             case "CODE_WRITING" -> blankToNull(request.sourceCode()) != null;
             default -> false;
         };
@@ -190,7 +192,8 @@ class ActivityController {
             ActivityRepository.QuestionAnswerRow question,
             SubmissionCreateRequest request
     ) {
-        if ("MULTIPLE_CHOICE".equals(question.questionType()) && question.correctChoiceKey() != null) {
+        if (List.of("MULTIPLE_CHOICE", "OX").contains(question.questionType())
+                && question.correctChoiceKey() != null) {
             boolean correct = question.correctChoiceKey().equals(blankToNull(request.selectedChoiceKey()));
             return new ActivityRepository.GradingDecision(
                     "COMPLETED",
@@ -228,11 +231,15 @@ class ActivityController {
         return gradedDecision(result, "is_correct");
     }
 
-    private ActivityRepository.GradingDecision gradeExplanation(
+    private ActivityRepository.GradingDecision gradeQuiz(
             ActivityRepository.QuestionAnswerRow question, String answer) {
         Map<String, Object> aiQuestion = new LinkedHashMap<>();
         aiQuestion.put("questionId", question.questionId().toString());
-        aiQuestion.put("type", "descriptive");
+        aiQuestion.put("type", switch (question.questionType()) {
+            case "SHORT_ANSWER" -> "short_answer";
+            case "FILL_BLANK" -> "fill_blank";
+            default -> "descriptive";
+        });
         aiQuestion.put("question", fullQuestion(question));
         aiQuestion.put("choices", List.of());
         aiQuestion.put("answer", question.referenceAnswer());

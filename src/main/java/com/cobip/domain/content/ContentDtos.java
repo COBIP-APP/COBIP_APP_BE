@@ -80,6 +80,8 @@ record QuestionResponse(
         Long languageId,
         String languageCode,
         String languageName,
+        Long createdBy,
+        String creatorNickname,
         String questionType,
         String prompt,
         String codeSnippet,

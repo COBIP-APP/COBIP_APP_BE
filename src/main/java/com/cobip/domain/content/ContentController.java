@@ -77,7 +77,7 @@ class ContentController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         requireAdminForDrafts(publishedOnly, jwt);
-        return contentRepository.findQuestion(questionId, publishedOnly)
+        return contentRepository.findQuestion(questionId, publishedOnly, Long.valueOf(jwt.getSubject()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found."));
     }
 

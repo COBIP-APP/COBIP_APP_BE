@@ -41,7 +41,7 @@ record QuestionSaveRequest(
         Long relatedTemplateId,
         Long relatedSectionId,
         Long languageId,
-        @NotNull @Pattern(regexp = "MULTIPLE_CHOICE|CODE_EXPLANATION|CODE_WRITING") String questionType,
+        @NotNull @Pattern(regexp = "MULTIPLE_CHOICE|OX|SHORT_ANSWER|FILL_BLANK|DESCRIPTIVE|CODE_EXPLANATION|CODE_WRITING") String questionType,
         @NotBlank String prompt,
         String codeSnippet,
         JsonNode choiceOptions,
