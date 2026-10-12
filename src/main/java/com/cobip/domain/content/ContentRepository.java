@@ -109,7 +109,8 @@ class ContentRepository {
                        q.related_template_id, q.related_section_id,
                        q.language_id, l.code AS language_code, l.name AS language_name,
                        q.question_type, q.prompt, q.code_snippet, q.choice_options,
-                       q.explanation, q.difficulty, q.pass_score, q.display_order, q.is_published,
+                       CASE WHEN :publishedOnly THEN NULL ELSE q.explanation END AS explanation,
+                       q.difficulty, q.pass_score, q.display_order, q.is_published,
                        q.created_at, q.updated_at
                 FROM questions q
                 JOIN categories c ON c.category_id = q.category_id
@@ -120,6 +121,7 @@ class ContentRepository {
         query.add("AND q.language_id = :languageId", "languageId", languageId);
         query.add("AND q.related_template_id = :templateId", "templateId", templateId);
         query.add("AND q.related_section_id = :sectionId", "sectionId", sectionId);
+        query.param("publishedOnly", publishedOnly);
         query.add("AND q.is_published = true", publishedOnly);
         query.orderBy("ORDER BY q.display_order, q.question_id");
 
@@ -132,7 +134,8 @@ class ContentRepository {
                        q.related_template_id, q.related_section_id,
                        q.language_id, l.code AS language_code, l.name AS language_name,
                        q.question_type, q.prompt, q.code_snippet, q.choice_options,
-                       q.explanation, q.difficulty, q.pass_score, q.display_order, q.is_published,
+                       CASE WHEN :publishedOnly THEN NULL ELSE q.explanation END AS explanation,
+                       q.difficulty, q.pass_score, q.display_order, q.is_published,
                        q.created_at, q.updated_at
                 FROM questions q
                 JOIN categories c ON c.category_id = q.category_id
@@ -140,6 +143,7 @@ class ContentRepository {
                 WHERE q.question_id = :questionId
                 """);
         query.param("questionId", questionId);
+        query.param("publishedOnly", publishedOnly);
         query.add("AND q.is_published = true", publishedOnly);
 
         return jdbcTemplate.query(query.sql(), query.params(), (rs, rowNum) -> mapQuestion(rs))
