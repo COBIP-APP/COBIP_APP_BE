@@ -65,7 +65,7 @@ class ActivityController {
         if (List.of("CODE_EXPLANATION", "SHORT_ANSWER", "FILL_BLANK", "DESCRIPTIVE")
                 .contains(question.questionType())
                 && blankToNull(question.referenceAnswer()) == null) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "A reference answer is required for AI grading.");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "A reference answer is required for grading.");
         }
 
         ActivityRepository.GradingDecision grading = decideGrading(question, request);
@@ -77,7 +77,7 @@ class ActivityController {
                 blankToNull(request.answerText()),
                 blankToNull(request.sourceCode()),
                 grading);
-        if ("MULTIPLE_CHOICE".equals(question.questionType()) || "OX".equals(question.questionType())) {
+        if (List.of("MULTIPLE_CHOICE", "OX", "CODE_EXPLANATION").contains(question.questionType())) {
             return submission;
         }
         ActivityRepository.GradingDecision result;
@@ -203,6 +203,14 @@ class ActivityController {
                     OffsetDateTime.now());
         }
 
+        if ("CODE_EXPLANATION".equals(question.questionType())) {
+            boolean correct = normalizeOutput(question.referenceAnswer())
+                    .equals(normalizeOutput(request.answerText()));
+            return new ActivityRepository.GradingDecision(
+                    "COMPLETED", "DB", correct ? BigDecimal.valueOf(100) : BigDecimal.ZERO,
+                    correct ? "Correct output." : "Incorrect output.", OffsetDateTime.now());
+        }
+
         return new ActivityRepository.GradingDecision(
                 "PENDING",
                 null,
@@ -292,5 +300,9 @@ class ActivityController {
             return null;
         }
         return value;
+    }
+
+    private String normalizeOutput(String value) {
+        return value.replace("\r\n", "\n").replace('\r', '\n').stripTrailing();
     }
 }

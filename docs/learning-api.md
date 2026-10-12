@@ -148,14 +148,14 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 | 필드 | 사용 유형 |
 | --- | --- |
 | `selectedChoiceKey` | 객관식·OX 선택지 키. 생성 객관식은 `"1"`~`"10"`, OX는 `"O"` 또는 `"X"` |
-| `answerText` | 코드 해석·단답형·빈칸형·서술형 답안 |
+| `answerText` | 코드 해석형의 예상 출력값 또는 단답형·빈칸형·서술형 답안 |
 | `sourceCode` | 코드 작성형 답안 |
 
-제출 응답은 `id`, `userId`, `questionId`, 세 답안 필드, `gradingStatus`, `gradingMethod`, `score`, `feedback`, `criteriaResults`, `aiModelVersion`, `submittedAt`, `gradedAt`, `correctAnswer`, `explanation`을 담는다. `correctAnswer`와 `explanation`은 `COMPLETED`일 때만 채워지고 `PENDING`·`FAILED`에서는 `null`이다. 문제 유형과 답안 필드가 맞지 않으면 `400`이다. 객관식·OX는 DB 정답 키와 비교해 `COMPLETED`·`DB`·100점 또는 0점으로 즉시 저장한다.
+제출 응답은 `id`, `userId`, `questionId`, 세 답안 필드, `gradingStatus`, `gradingMethod`, `score`, `feedback`, `criteriaResults`, `aiModelVersion`, `submittedAt`, `gradedAt`, `correctAnswer`, `explanation`을 담는다. `correctAnswer`와 `explanation`은 `COMPLETED`일 때만 채워지고 `PENDING`·`FAILED`에서는 `null`이다. 문제 유형과 답안 필드가 맞지 않으면 `400`이다. 객관식·OX는 DB 정답 키와 비교해 즉시 채점한다. `CODE_EXPLANATION`은 저장된 `referenceAnswer`와 제출한 `answerText`를 비교한다. 두 경우 모두 `COMPLETED`·`DB`·100점 또는 0점으로 저장한다. 코드 해석형은 양쪽의 줄바꿈 형식(CRLF/LF)과 맨 끝 공백만 정리하며, 대소문자·중간 공백·출력 내용은 그대로 비교한다. 실제 코드를 실행해 출력을 계산하지는 않는다.
 
-코드 작성형은 **Java 언어 문제만** AI `/ai/java/grade`로 채점한다. 관리자 `gradingCriteria`가 문자열 배열이면 AI에 `criteria`로 전달하며, 없으면 AI가 기준을 생성한다. Python·JavaScript 코드 작성형은 현재 `422`로 거절한다. 코드 해석형·단답형·빈칸형·서술형은 문제 지문, 모범 답안, 학생 `answerText`를 AI `/ai/quiz/grade`로 전달한다. 코드 해석형과 서술형은 `descriptive`, 단답형은 `short_answer`, 빈칸형은 `fill_blank`로 보낸다. 모범 답안이 없으면 `422`다. 현재 AI 서버는 관리자 평가 기준 반영을 보장하지 않는다.
+코드 작성형은 **Java 언어 문제만** AI `/ai/java/grade`로 채점한다. 관리자 `gradingCriteria`가 문자열 배열이면 AI에 `criteria`로 전달하며, 없으면 AI가 기준을 생성한다. Python·JavaScript 코드 작성형은 현재 `422`로 거절한다. 단답형·빈칸형·서술형은 문제 지문, 모범 답안, 학생 `answerText`를 AI `/ai/quiz/grade`에 각각 `short_answer`, `fill_blank`, `descriptive` 유형으로 전달한다. AI 채점 대상과 코드 해석형에 모범 답안이 없으면 `422`다. 관리자는 `CODE_EXPLANATION` 등록 시 제시 코드 `codeSnippet`과 예상 출력 `referenceAnswer`를 함께 입력해야 한다. 현재 AI 서버는 관리자 평가 기준 반영을 보장하지 않는다.
 
-AI 채점은 제출 행을 `PENDING`으로 만든 뒤 결과를 **같은 행에** 기록한다. 0~100 범위의 숫자 `score`, 비어 있지 않은 `feedback`, 유형에 맞는 boolean 정오답 값(`is_correct` 또는 `isCorrect`)이 오면 `COMPLETED`로 저장한다. AI 채점의 `gradingMethod`는 사용하지 않고 응답과 DB 모두 `null`로 둔다. 객관식의 `gradingMethod=DB`는 유지한다. AI 요청 실패나 필수 채점 결과 누락은 `FAILED`로 기록하고 점수·채점 방식은 비워 둔다. `FAILED`면 사용자가 다시 제출해야 하며, 자동 재시도는 하지 않는다. 다시 제출할 때는 새 행이 만들어진다. AI 점수는 정적 분석 결과로, 실제 코드 실행 결과가 아니다.
+AI 채점 대상인 코드 작성형·단답형·빈칸형·서술형은 제출 행을 `PENDING`으로 만든 뒤 결과를 **같은 행에** 기록한다. 0~100 범위의 숫자 `score`, 비어 있지 않은 `feedback`, 유형에 맞는 boolean 정오답 값(`is_correct` 또는 `isCorrect`)이 오면 `COMPLETED`로 저장한다. AI 채점의 `gradingMethod`는 사용하지 않고 응답과 DB 모두 `null`로 둔다. 객관식·OX·코드 해석형의 `gradingMethod=DB`는 유지한다. AI 요청 실패나 필수 채점 결과 누락은 `FAILED`로 기록하고 점수·채점 방식은 비워 둔다. `FAILED`면 사용자가 다시 제출해야 하며, 자동 재시도는 하지 않는다. 다시 제출할 때는 새 행이 만들어진다. AI 점수는 정적 분석 결과로, 실제 코드 실행 결과가 아니다.
 
 최신 제출 조회는 `submittedAt` 내림차순, 같은 시각이면 제출 ID 내림차순으로 한 건을 반환한다. 본인에게 기록이 없으면 `404`다. 제출할 때는 공개 문제 또는 본인이 저장한 비공개 문제인지 확인하지만, 이미 제출한 기록을 다시 조회할 때는 현재 공개 여부를 확인하지 않는다.
 
