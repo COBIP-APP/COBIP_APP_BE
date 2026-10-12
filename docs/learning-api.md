@@ -94,7 +94,7 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 | `answerText` | 코드 해석·설명형 답안 |
 | `sourceCode` | 코드 작성형 답안 |
 
-제출 응답은 `id`, `userId`, `questionId`, 세 답안 필드, `gradingStatus`, `gradingMethod`, `score`, `feedback`, `criteriaResults`, `aiModelVersion`, `submittedAt`, `gradedAt`을 담는다. 문제 유형과 답안 필드가 맞지 않으면 `400`이다. 객관식은 DB 정답 키와 비교해 `COMPLETED`·`DB`·100점 또는 0점으로 즉시 저장한다. 객관식 선택 키는 저장된 `correctChoiceKey`와 같은 체계여야 한다. AI 생성 객관식은 문자열 `"1"`, `"2"`처럼 숫자 키를 사용한다.
+제출 응답은 `id`, `userId`, `questionId`, 세 답안 필드, `gradingStatus`, `gradingMethod`, `score`, `feedback`, `criteriaResults`, `aiModelVersion`, `submittedAt`, `gradedAt`, `correctAnswer`, `explanation`을 담는다. `correctAnswer`와 `explanation`은 `COMPLETED`일 때만 채워지고 `PENDING`·`FAILED`에서는 `null`이다. 문제 유형과 답안 필드가 맞지 않으면 `400`이다. 객관식은 DB 정답 키와 비교해 `COMPLETED`·`DB`·100점 또는 0점으로 즉시 저장한다. 객관식 선택 키는 저장된 `correctChoiceKey`와 같은 체계여야 한다. AI 생성 객관식은 문자열 `"1"`, `"2"`처럼 숫자 키를 사용한다.
 
 코드 작성형은 **Java 언어 문제만** AI `/ai/java/grade`로 채점한다. 관리자 `gradingCriteria`가 문자열 배열이면 AI에 `criteria`로 전달하며, 없으면 AI가 기준을 생성한다. Python·JavaScript 코드 작성형은 현재 `422`로 거절한다. 코드 해석형은 문제 지문·제시 코드, 관리자 `referenceAnswer`, 학생 `answerText`를 AI `/ai/quiz/grade`의 `descriptive` 형식으로 전달한다. 코드 해석형에 모범 답안이 없으면 `422`다. 현재 AI 서버는 코드 해석형의 관리자 평가 기준 반영을 보장하지 않는다.
 

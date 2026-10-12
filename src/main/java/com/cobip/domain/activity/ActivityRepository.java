@@ -97,11 +97,15 @@ class ActivityRepository {
 
     Optional<SubmissionResponse> findSubmission(Long submissionId) {
         String sql = """
-                SELECT submission_id, user_id, question_id, selected_choice_key, answer_text, source_code,
-                       grading_status, grading_method, score, feedback, criteria_results,
-                       ai_model_version, submitted_at, graded_at
-                FROM submissions
-                WHERE submission_id = :submissionId
+                SELECT s.*,
+                       CASE WHEN s.grading_status = 'COMPLETED' THEN
+                           CASE WHEN q.question_type = 'MULTIPLE_CHOICE'
+                               THEN q.correct_choice_key ELSE q.reference_answer END
+                       END AS correct_answer,
+                       CASE WHEN s.grading_status = 'COMPLETED' THEN q.explanation END AS explanation
+                FROM submissions s
+                JOIN questions q ON q.question_id = s.question_id
+                WHERE s.submission_id = :submissionId
                 """;
 
         return jdbcTemplate.query(sql,
@@ -128,12 +132,16 @@ class ActivityRepository {
 
     Optional<SubmissionResponse> findLatestSubmission(Long userId, Long questionId) {
         String sql = """
-                SELECT submission_id, user_id, question_id, selected_choice_key, answer_text, source_code,
-                       grading_status, grading_method, score, feedback, criteria_results,
-                       ai_model_version, submitted_at, graded_at
-                FROM submissions
-                WHERE user_id = :userId AND question_id = :questionId
-                ORDER BY submitted_at DESC, submission_id DESC
+                SELECT s.*,
+                       CASE WHEN s.grading_status = 'COMPLETED' THEN
+                           CASE WHEN q.question_type = 'MULTIPLE_CHOICE'
+                               THEN q.correct_choice_key ELSE q.reference_answer END
+                       END AS correct_answer,
+                       CASE WHEN s.grading_status = 'COMPLETED' THEN q.explanation END AS explanation
+                FROM submissions s
+                JOIN questions q ON q.question_id = s.question_id
+                WHERE s.user_id = :userId AND s.question_id = :questionId
+                ORDER BY s.submitted_at DESC, s.submission_id DESC
                 LIMIT 1
                 """;
 
@@ -282,7 +290,9 @@ class ActivityRepository {
                 readJson(rs.getString("criteria_results")),
                 rs.getString("ai_model_version"),
                 rs.getObject("submitted_at", OffsetDateTime.class),
-                rs.getObject("graded_at", OffsetDateTime.class));
+                rs.getObject("graded_at", OffsetDateTime.class),
+                rs.getString("correct_answer"),
+                rs.getString("explanation"));
     }
 
     private ProgressResponse mapProgress(ResultSet rs) throws SQLException {
