@@ -98,7 +98,7 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 
 코드 작성형은 **Java 언어 문제만** AI `/ai/java/grade`로 채점한다. 관리자 `gradingCriteria`가 문자열 배열이면 AI에 `criteria`로 전달하며, 없으면 AI가 기준을 생성한다. Python·JavaScript 코드 작성형은 현재 `422`로 거절한다. 코드 해석형은 문제 지문·제시 코드, 관리자 `referenceAnswer`, 학생 `answerText`를 AI `/ai/quiz/grade`의 `descriptive` 형식으로 전달한다. 코드 해석형에 모범 답안이 없으면 `422`다. 현재 AI 서버는 코드 해석형의 관리자 평가 기준 반영을 보장하지 않는다.
 
-AI 채점은 제출 행을 `PENDING`으로 만든 뒤 결과를 **같은 행에** 기록한다. 유효한 `gradingMethod`(`AI` 또는 `RULE_FALLBACK`), 점수, 피드백이 오면 `COMPLETED`; AI 요청 실패나 필드 누락이면 `FAILED`로 기록하고 점수·채점 방식은 비워 둔다. `FAILED`면 사용자가 다시 제출해야 하며, 자동 재시도는 하지 않는다. 다시 제출할 때는 새 행이 만들어진다. 운영 AI 응답에 `gradingMethod`가 추가되기 전에는 코드형 제출이 `FAILED`가 된다. AI 점수는 정적 분석 결과로, 실제 코드 실행 결과가 아니다.
+AI 채점은 제출 행을 `PENDING`으로 만든 뒤 결과를 **같은 행에** 기록한다. 0~100 범위의 숫자 `score`, 비어 있지 않은 `feedback`, 유형에 맞는 boolean 정오답 값(`is_correct` 또는 `isCorrect`)이 오면 `COMPLETED`로 저장한다. AI 채점의 `gradingMethod`는 사용하지 않고 응답과 DB 모두 `null`로 둔다. 객관식의 `gradingMethod=DB`는 유지한다. AI 요청 실패나 필수 채점 결과 누락은 `FAILED`로 기록하고 점수·채점 방식은 비워 둔다. `FAILED`면 사용자가 다시 제출해야 하며, 자동 재시도는 하지 않는다. 다시 제출할 때는 새 행이 만들어진다. AI 점수는 정적 분석 결과로, 실제 코드 실행 결과가 아니다.
 
 최신 제출 조회는 `submittedAt` 내림차순, 같은 시각이면 제출 ID 내림차순으로 한 건을 반환한다. 본인에게 기록이 없으면 `404`다. 제출할 때 문제 공개 여부를 확인하지만, 이미 제출한 기록을 다시 조회할 때는 현재 공개 여부를 확인하지 않는다.
 
@@ -143,7 +143,7 @@ AI 문제 생성 요청 예시: `{"categoryId":2,"aiCategory":"Infrastructure","
 
 ## 현재 미구현·추가 결정 사항
 
-- AI 서버의 `gradingMethod` 응답은 2026-10-12 운영 Java 채점 응답에 아직 없다. AI 팀 배포 후 재확인해야 코드형 채점이 `COMPLETED`로 기록된다.
+- AI 채점 방식(`AI` 또는 규칙 기반 대체 채점)은 현재 응답에서 구별하지 않는다. `gradingMethod=null`을 채점 실패로 해석하지 않는다.
 - 이미지 업로드·S3 저장 및 관리자 웹 화면 자체: 이 백엔드 API 묶음에 포함되지 않았다.
 - 단계별 완료 퍼센트·총 학습 시간·개인화 추천: 현재 DB가 측정하지 않는다. 홈 추천은 우선 기존 공개 템플릿 목록에서 선택한다.
 - 실제 서비스 약관 원문: 인증 API는 동의 여부와 시각을 저장하지만, Flutter의 약관 화면에는 아직 예시 문구가 있다.

@@ -228,7 +228,7 @@ CREATE TABLE submissions (
     ),
     CONSTRAINT submissions_completed_has_result CHECK (
         grading_status <> 'COMPLETED'
-        OR (grading_method IS NOT NULL AND score IS NOT NULL AND graded_at IS NOT NULL)
+        OR (score IS NOT NULL AND graded_at IS NOT NULL)
     )
 );
 

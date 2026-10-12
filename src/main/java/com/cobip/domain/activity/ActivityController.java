@@ -255,17 +255,15 @@ class ActivityController {
     }
 
     private ActivityRepository.GradingDecision gradedDecision(JsonNode result, String correctField) {
-        String method = result.path("gradingMethod").asText();
         JsonNode score = result.path("score");
         String feedback = result.path("feedback").asText();
-        if (!("AI".equals(method) || "RULE_FALLBACK".equals(method))
-                || !score.isNumber() || score.decimalValue().compareTo(BigDecimal.ZERO) < 0
+        if (!score.isNumber() || score.decimalValue().compareTo(BigDecimal.ZERO) < 0
                 || score.decimalValue().compareTo(BigDecimal.valueOf(100)) > 0 || feedback.isBlank()
                 || !result.path(correctField).isBoolean()) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI grading response is incomplete.");
         }
         return new ActivityRepository.GradingDecision(
-                "COMPLETED", method, score.decimalValue(), feedback, OffsetDateTime.now());
+                "COMPLETED", null, score.decimalValue(), feedback, OffsetDateTime.now());
     }
 
     private int answerCount(SubmissionCreateRequest request) {
