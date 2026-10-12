@@ -22,7 +22,7 @@
 | GET | `/api/questions?categoryId=&languageId=&templateId=&sectionId=` | 공개된 문제 목록. 필터는 선택 |
 | GET | `/api/questions/{questionId}` | 공개된 문제 상세. 정답·모범 답안은 응답하지 않음 |
 
-템플릿·문제 조회의 `publishedOnly=false`는 관리자만 사용한다. 관리자는 이를 이용해 비공개 초안도 조회한다. 일반 사용자가 이 값을 보내면 `403`이다. 일반 사용자는 비공개 템플릿의 목차를 직접 조회할 수도 없다. DB 초기값에는 언어·카테고리만 있고 **템플릿·목차·문제는 자동 생성되지 않는다.**
+템플릿·문제 조회의 `publishedOnly=false`는 관리자만 사용한다. 관리자는 이를 이용해 비공개 초안도 조회한다. 일반 사용자가 이 값을 보내면 `403`이다. 일반 사용자는 비공개 템플릿의 목차를 직접 조회할 수도 없다. 공개 문제 응답의 `explanation`은 정답 유출을 막기 위해 `null`이다. DB 초기값에는 언어·카테고리만 있고 **템플릿·목차·문제는 자동 생성되지 않는다.**
 
 ## 사용자 화면: 계정과 활동
 
@@ -94,9 +94,17 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 | `answerText` | 코드 해석·설명형 답안 |
 | `sourceCode` | 코드 작성형 답안 |
 
-제출 응답은 `id`, `userId`, `questionId`, 세 답안 필드, `gradingStatus`, `gradingMethod`, `score`, `feedback`, `criteriaResults`, `aiModelVersion`, `submittedAt`, `gradedAt`을 담는다. 문제 유형과 답안 필드가 맞지 않으면 `400`이다. 객관식은 DB 정답 키와 비교해 `COMPLETED`·`DB`·100점 또는 0점으로 즉시 저장한다. 그 외 답안은 현재 `PENDING`으로 저장된다. **FastAPI/AI 채점과 채점 결과 갱신은 아직 연결되지 않았다.**
+제출 응답은 `id`, `userId`, `questionId`, 세 답안 필드, `gradingStatus`, `gradingMethod`, `score`, `feedback`, `criteriaResults`, `aiModelVersion`, `submittedAt`, `gradedAt`을 담는다. 문제 유형과 답안 필드가 맞지 않으면 `400`이다. 객관식은 DB 정답 키와 비교해 `COMPLETED`·`DB`·100점 또는 0점으로 즉시 저장한다. 객관식 선택 키는 저장된 `correctChoiceKey`와 같은 체계여야 한다. AI 생성 객관식은 문자열 `"1"`, `"2"`처럼 숫자 키를 사용한다.
+
+코드 작성형은 **Java 언어 문제만** AI `/ai/java/grade`로 채점한다. 관리자 `gradingCriteria`가 문자열 배열이면 AI에 `criteria`로 전달하며, 없으면 AI가 기준을 생성한다. Python·JavaScript 코드 작성형은 현재 `422`로 거절한다. 코드 해석형은 문제 지문·제시 코드, 관리자 `referenceAnswer`, 학생 `answerText`를 AI `/ai/quiz/grade`의 `descriptive` 형식으로 전달한다. 코드 해석형에 모범 답안이 없으면 `422`다. 현재 AI 서버는 코드 해석형의 관리자 평가 기준 반영을 보장하지 않는다.
+
+AI 채점은 제출 행을 `PENDING`으로 만든 뒤 결과를 **같은 행에** 기록한다. 유효한 `gradingMethod`(`AI` 또는 `RULE_FALLBACK`), 점수, 피드백이 오면 `COMPLETED`; AI 요청 실패나 필드 누락이면 `FAILED`로 기록하고 점수·채점 방식은 비워 둔다. `FAILED`면 사용자가 다시 제출해야 하며, 자동 재시도는 하지 않는다. 다시 제출할 때는 새 행이 만들어진다. 운영 AI 응답에 `gradingMethod`가 추가되기 전에는 코드형 제출이 `FAILED`가 된다. AI 점수는 정적 분석 결과로, 실제 코드 실행 결과가 아니다.
 
 최신 제출 조회는 `submittedAt` 내림차순, 같은 시각이면 제출 ID 내림차순으로 한 건을 반환한다. 본인에게 기록이 없으면 `404`다. 제출할 때 문제 공개 여부를 확인하지만, 이미 제출한 기록을 다시 조회할 때는 현재 공개 여부를 확인하지 않는다.
+
+### AI 챗봇
+
+`POST /api/ai/chat`은 로그인 토큰이 필요하다. 요청 예시는 `{"message":"Redis의 TTL이 뭐야?","useRag":null}`이고 `useRag`는 생략할 수 있다. 성공 `200` 응답은 `answer`, `source`(`ollama|rag|fallback`), `ragUsed`, `references`, `intent`다. `source=fallback`도 `200`일 수 있으므로 화면에 대체 답변임을 표시한다. 서버는 대화를 저장하지 않는다. `references`는 AI 자료 정보이며 COBIA의 템플릿·목차 ID가 아니므로 앱 내부 이동 링크로 바로 사용하지 않는다. AI 서버 연결 실패는 `502` 또는 `504`다.
 
 ### 북마크
 
@@ -104,7 +112,7 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 
 ## 관리자 웹: 콘텐츠 저장
 
-관리자 API는 먼저 **비공개 초안**을 저장한다. 관리자가 확인한 뒤 공개 전환 API를 호출해야 앱 목록에 나타난다. AI가 만든 문제도 관리자가 검토·수정한 내용을 일반 문제 저장 API에 보내면 된다. **AI 서버에 생성 요청을 전달하는 API는 아직 없다.**
+관리자 API는 먼저 **비공개 초안**을 저장한다. 관리자가 확인한 뒤 공개 전환 API를 호출해야 앱 목록에 나타난다. AI 생성 문제도 같은 흐름이다.
 
 | 메서드 | 경로 | 성공 |
 | --- | --- | --- |
@@ -118,6 +126,7 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 | POST | `/api/admin/templates/{templateId}/sections` | `201 {"id":…}` |
 | PUT | `/api/admin/templates/{templateId}/sections/{sectionId}` | `204` |
 | POST | `/api/admin/questions` | `201 {"id":…}` 비공개 초안 |
+| POST | `/api/admin/ai/questions/generate` | `201 {"id":…}` AI 객관식 한 건을 비공개 초안으로 저장 |
 | GET | `/api/admin/questions/{questionId}` | `200` 정답·모범 답안·평가 기준을 포함한 관리자 상세 |
 | PUT | `/api/admin/questions/{questionId}` | `204` |
 | PATCH | `/api/admin/questions/{questionId}/publication` | `204` |
@@ -128,11 +137,13 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 
 문제 저장 본문은 `categoryId`, `relatedTemplateId`(선택), `relatedSectionId`(선택), `languageId`(선택), `questionType`(`MULTIPLE_CHOICE|CODE_EXPLANATION|CODE_WRITING`), `prompt`, `codeSnippet`(선택), `choiceOptions`(JSON 배열 또는 null), `correctChoiceKey`(선택), `referenceAnswer`(선택), `gradingCriteria`(JSON 배열 또는 null), `explanation`(선택), `difficulty`, `passScore`(0~100), `displayOrder`다. 객관식은 비어 있지 않은 `choiceOptions`와 `correctChoiceKey`가 필요하다. 관련 목차를 지정하면 관련 템플릿도 지정해야 하고, 그 목차가 해당 템플릿에 속해야 한다. 문제 목록은 `GET /api/questions?publishedOnly=false`, 정답을 포함한 상세는 관리자 전용 `GET /api/admin/questions/{questionId}`로 본다.
 
+AI 문제 생성 요청 예시: `{"categoryId":2,"aiCategory":"Infrastructure","domain":"AWS","languageId":null,"relatedTemplateId":null,"relatedSectionId":null,"displayOrder":1}`. 관리자만 호출할 수 있다. AI 서버에는 `MULTIPLE_CHOICE` 한 문제만 요청하며, 응답의 임시 `id`는 버리고 DB가 발급한 ID를 반환한다. 저장된 `choiceOptions`는 `[{"key":"1","text":"첫 번째 보기"}]` 형태의 JSON 배열이다. 생성 직후 `isPublished=false`다. 관리자는 `GET /api/admin/questions/{id}`로 정답·해설을 검토하고 필요하면 `PUT`으로 수정한 뒤 공개한다. AI 응답 오류는 `502`/`504`이고, DB 분류·표시 순서 충돌은 `409`일 수 있다.
+
 공개 전환 본문은 템플릿·문제 모두 `{"published":true}` 또는 `{"published":false}`다. 삭제 API와 이미지 업로드 API는 아직 없다. DB에서 관리자 권한을 부여한 계정은 **다시 로그인**해 새 `ADMIN` JWT를 받아야 한다.
 
 ## 현재 미구현·추가 결정 사항
 
-- AI 서버를 통한 문제 초안 생성과 제출 답안 채점 연동: FastAPI 계약을 합의한 뒤 추가한다. 현재 코드 작성·설명 답안은 `PENDING`에서 자동으로 바뀌지 않는다.
+- AI 서버의 `gradingMethod` 응답은 2026-10-12 운영 Java 채점 응답에 아직 없다. AI 팀 배포 후 재확인해야 코드형 채점이 `COMPLETED`로 기록된다.
 - 이미지 업로드·S3 저장 및 관리자 웹 화면 자체: 이 백엔드 API 묶음에 포함되지 않았다.
 - 단계별 완료 퍼센트·총 학습 시간·개인화 추천: 현재 DB가 측정하지 않는다. 홈 추천은 우선 기존 공개 템플릿 목록에서 선택한다.
 - 실제 서비스 약관 원문: 인증 API는 동의 여부와 시각을 저장하지만, Flutter의 약관 화면에는 아직 예시 문구가 있다.
