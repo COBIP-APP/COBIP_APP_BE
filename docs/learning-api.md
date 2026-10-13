@@ -90,7 +90,7 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 ```json
 {
   "clientRequestId": "ca127cf6-831f-40fc-bdea-61cdd4d38c6a",
-  "category": "Infrastructure",
+  "category": "AWS",
   "difficulty": "중급",
   "question": {
     "id": 1,
@@ -113,13 +113,20 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 | `blank` | `FILL_BLANK` | 빈칸 정답 | `answerText` |
 | `descriptive` | `DESCRIPTIVE` | 모범 답안 | `answerText` |
 
-`clientRequestId`는 문제별 UUID v4로 생성하고 저장 재시도에 같은 값을 사용한다. AI의 `question.id`는 임시 번호라 버리고 DB가 새 `id`를 발급한다. OX 정답 `"1"`과 `"2"`는 저장할 때 각각 `"O"`와 `"X"`로 바뀌며, 풀이 제출의 `selectedChoiceKey`는 `"O"` 또는 `"X"`를 사용한다. `초급`·`중급`·`고급`은 각각 `EASY`·`NORMAL`·`HARD`로 바뀐다. Java·Python·JavaScript 주제는 언어 ID에도 연결한다. 다른 `category` 문자열도 저장할 수 있지만 현재는 모두 상위 `CODING_PROBLEM` 분류로 저장하므로 세부 주제 문자열은 보존되지 않는다. 목록에서 주제별 필터가 필요해지면 분류 매핑을 확장해야 한다. `references`와 AI 임시 ID는 저장하지 않으며, `gradingKeywords`는 평가 기준으로 저장한다.
+`clientRequestId`는 문제별 UUID v4로 생성하고 저장 재시도에 같은 값을 사용한다. AI의 `question.id`는 임시 번호라 버리고 DB가 새 `id`를 발급한다. OX 정답 `"1"`과 `"2"`는 저장할 때 각각 `"O"`와 `"X"`로 바뀌며, 풀이 제출의 `selectedChoiceKey`는 `"O"` 또는 `"X"`를 사용한다. `초급`·`중급`·`고급`은 각각 `EASY`·`NORMAL`·`HARD`로 바뀐다. `references`와 AI 임시 ID는 저장하지 않으며, `gradingKeywords`는 평가 기준으로 저장한다.
+
+`category`는 숫자 분류 ID가 아닌 **사용자가 처음 입력한 언어·생성 주제 문자열**이다. FE는 AI가 바꾼 주제 대신 최초 입력을 전달한다. BE는 앞뒤 공백을 제거하고 대소문자를 보존해 `questions.generation_topic`에 저장하며, 빈 입력은 기존처럼 `400`이다. 기존 `languages`의 코드 또는 이름과 대소문자 구분 없이 일치하면 해당 `languageId`로 연결한다. `JS`는 `JAVASCRIPT` 코드의 별칭이다. AWS·Docker처럼 일치하는 언어가 없으면 언어 정보는 모두 `null`이며 전역 언어 목록에 주제를 추가하지 않는다. 언어 연결 여부와 관계없이 `generationTopic`은 보존한다.
+
+생성 문제의 DB 분류는 항상 `CODING_PROBLEM`이며 JWT 사용자 소유·비공개로 저장하고 챕터·목차를 연결하지 않는다. 새 Flyway `V6__question_generation_topic.sql`은 nullable 컬럼만 추가하며, 기존 문제의 주제는 본문에서 추측하거나 채우지 않고 `null`로 유지한다.
 
 ```json
 {
   "id": 501,
   "categoryId": 3,
   "languageId": null,
+  "languageCode": null,
+  "languageName": null,
+  "generationTopic": "AWS",
   "relatedTemplateId": null,
   "relatedSectionId": null,
   "createdBy": 1,
@@ -137,6 +144,10 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 ```
 
 위 응답은 주요 필드 예시다. 실제 `categoryId`, `id`는 DB에서 발급되며 `choiceOptions`에는 요청한 보기 전부가 들어간다. `GET /api/users/me/questions`는 같은 형식의 객체 배열을 생성 시각 최신순으로 반환하며 기록이 없으면 `[]`다. 작성자는 `GET /api/questions/{id}`로 자기 비공개 문제의 **정답을 제외한** 상세를 보고 기존 제출 API로 풀 수 있다. 정답과 해설은 채점이 `COMPLETED`된 제출 응답에서 확인한다. 내 문제 목록과 저장 직후 응답에는 등록한 해설이 포함된다.
+
+`generationTopic: string | null`은 저장 응답(신규 `201`·재시도 `200`), 내 문제 목록의 각 항목, 공개 문제 목록의 각 항목, 문제 상세에 동일하게 포함된다. 목록은 기존 배열, 저장·상세는 단일 객체 형식을 유지한다. 언어 미지정 시 `languageName`은 표시 문구 대신 `null`을 반환한다. 공개 목록에는 본인 저장 비공개 문제를 노출하지 않는다.
+
+FE는 공개·본인 문제를 합친 뒤 `CODING_PROBLEM` 및 하위 분류이면서 챕터·목차가 없는 문제만 일반 문제 화면과 필터 대상으로 사용한다. `languageId`가 있으면 언어별로, 없으면 `generationTopic`의 앞뒤 공백과 대소문자를 무시해 묶는다(`AWS`·`aws`는 한 항목). 둘 다 없으면 언어 공통으로 표시한다. 문법·실무 전용 언어는 일반 문제 필터에 추가하지 않는다. 공통 `GET /api/questions`는 문법·실무에서도 사용하므로 챕터 문제를 전역 제외하지 않는다.
 
 `DELETE /api/users/me/questions/{questionId}`는 로그인한 사용자가 직접 저장한 **비공개 AI 문제**만 삭제한다. 요청 본문은 없고 성공하면 응답 본문 없는 `204`다. 다른 사용자의 문제, 관리자 등록 문제, 공개 문제, 이미 삭제된 문제 또는 없는 ID는 모두 `404`다. 삭제된 문제는 목록·상세 조회와 새 답안 제출에서 제외하지만 기존 제출 행은 보존한다. 삭제 후 같은 `clientRequestId`로 저장을 재시도하면 `409`이며, 새 문제를 저장하려면 새 요청 ID를 사용해야 한다. Flutter는 `204` 응답을 JSON으로 파싱하지 않고 목록을 다시 조회한다.
 

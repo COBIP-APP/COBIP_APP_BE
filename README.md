@@ -13,6 +13,8 @@ COBIA Flutter 앱의 Spring Boot API입니다. 로컬 개발에서는 Docker Com
 
 AI 기능은 기본적으로 `https://ai.cobip.tech`를 호출합니다. 다른 AI 서버를 사용할 때만 `.env`의 `AI_SERVER_URL`을 바꾸고 `docker compose --profile full up -d --build --wait`로 앱을 다시 만듭니다. AI API 상세 흐름은 [학습 API 명세](docs/learning-api.md)를 참고하세요. AI 채점 응답에 점수·피드백·정오답 값이 정상적으로 있으면 완료로 저장하며 `gradingMethod`는 요구하지 않습니다.
 
+AI 생성 문제 저장의 `category`는 사용자가 입력한 언어·주제 문자열입니다. 서버는 이를 `generationTopic`으로 DB에 보존하고 저장·내 목록·공개 목록·상세 응답에 반환합니다. 기존 DB에는 서버 시작 시 새 Flyway V6 마이그레이션이 적용되며, 이전 문제의 주제는 `null`로 유지됩니다. 작업 내용과 검증 방법은 [생성 주제 저장 작업 정리](docs/generated-question-topic-work-summary.md)를 참고하세요.
+
 명령이 실패하거나 Spring을 직접 실행해야 한다면 아래 상세 안내를 참고하세요.
 
 ## Flutter 팀원: 처음 실행

@@ -26,6 +26,7 @@ class ContentRepository {
             SELECT q.question_id, q.category_id, c.code AS category_code, c.name AS category_name,
                    q.related_template_id, q.related_section_id,
                    q.language_id, l.code AS language_code, l.name AS language_name,
+                   q.generation_topic,
                    q.created_by, u.nickname AS creator_nickname,
                    q.question_type, q.prompt, q.code_snippet, q.choice_options,
                    CASE WHEN :revealExplanation THEN q.explanation ELSE NULL END AS explanation,
@@ -169,14 +170,17 @@ class ContentRepository {
     SavedQuestion saveOwnedQuestion(Long userId, UserQuestionDraft draft) {
         String sql = """
                 INSERT INTO questions (
-                    category_id, created_by, client_request_id, language_id, question_type,
+                    category_id, created_by, client_request_id, language_id, generation_topic, question_type,
                     prompt, choice_options, correct_choice_key, reference_answer,
                     grading_criteria, explanation, difficulty, pass_score, display_order
                 ) VALUES (
                     (SELECT category_id FROM categories WHERE code = 'CODING_PROBLEM'),
                     :userId, :clientRequestId,
-                    (SELECT language_id FROM languages WHERE code = :languageCode),
-                    :questionType, :prompt, CAST(:choiceOptions AS jsonb), :correctChoiceKey,
+                    (SELECT language_id FROM languages
+                     WHERE lower(code) = lower(:languageCode) OR lower(name) = lower(:generationTopic)
+                     ORDER BY CASE WHEN lower(code) = lower(:languageCode) THEN 0 ELSE 1 END, language_id
+                     LIMIT 1),
+                    :generationTopic, :questionType, :prompt, CAST(:choiceOptions AS jsonb), :correctChoiceKey,
                     :referenceAnswer, CAST(:gradingCriteria AS jsonb), :explanation,
                     :difficulty, 70, 1
                 )
@@ -188,6 +192,7 @@ class ContentRepository {
                 .addValue("userId", userId)
                 .addValue("clientRequestId", draft.clientRequestId())
                 .addValue("languageCode", draft.languageCode())
+                .addValue("generationTopic", draft.generationTopic())
                 .addValue("questionType", draft.questionType())
                 .addValue("prompt", draft.prompt())
                 .addValue("choiceOptions", draft.choiceOptions() == null ? null : draft.choiceOptions().toString())
@@ -303,6 +308,7 @@ class ContentRepository {
                 rs.getObject("language_id", Long.class),
                 rs.getString("language_code"),
                 rs.getString("language_name"),
+                rs.getString("generation_topic"),
                 rs.getLong("created_by"),
                 rs.getString("creator_nickname"),
                 rs.getString("question_type"),

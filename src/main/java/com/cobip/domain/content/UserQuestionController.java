@@ -77,12 +77,8 @@ class UserQuestionController {
             case "고급", "hard", "advanced" -> "HARD";
             default -> throw invalid("Unsupported difficulty.");
         };
-        String languageCode = switch (request.category().trim().toUpperCase(Locale.ROOT)) {
-            case "JAVA" -> "JAVA";
-            case "PYTHON" -> "PYTHON";
-            case "JAVASCRIPT", "JS" -> "JAVASCRIPT";
-            default -> null;
-        };
+        String generationTopic = request.category().trim();
+        String languageCode = "JS".equalsIgnoreCase(generationTopic) ? "JAVASCRIPT" : generationTopic;
         JsonNode choices = null;
         String correctChoiceKey = null;
         String referenceAnswer = null;
@@ -127,7 +123,7 @@ class UserQuestionController {
         }
         JsonNode criteria = question.gradingKeywords() == null || question.gradingKeywords().isEmpty()
                 ? null : objectMapper.valueToTree(question.gradingKeywords());
-        return new UserQuestionDraft(request.clientRequestId(), languageCode, type,
+        return new UserQuestionDraft(request.clientRequestId(), languageCode, generationTopic, type,
                 question.question().trim(), choices, correctChoiceKey, referenceAnswer,
                 criteria, question.explanation(), difficulty);
     }
