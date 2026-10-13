@@ -89,7 +89,7 @@ class AdminContentRepository {
                     grading_criteria = CAST(:gradingCriteria AS jsonb), explanation = :explanation,
                     difficulty = :difficulty, pass_score = :passScore,
                     display_order = :displayOrder, updated_at = now()
-                WHERE question_id = :id
+                WHERE question_id = :id AND deleted_at IS NULL
                 """;
         return jdbc.update(sql, questionParams(request).addValue("id", id)) > 0;
     }
@@ -100,7 +100,7 @@ class AdminContentRepository {
                        language_id, question_type, prompt, code_snippet, choice_options,
                        correct_choice_key, reference_answer, grading_criteria, explanation,
                        difficulty, pass_score, display_order, is_published, created_at, updated_at
-                FROM questions WHERE question_id = :id
+                FROM questions WHERE question_id = :id AND deleted_at IS NULL
                 """;
         return jdbc.query(sql, new MapSqlParameterSource("id", id),
                 (rs, rowNum) -> mapQuestion(rs)).stream().findFirst();
@@ -112,7 +112,7 @@ class AdminContentRepository {
     }
 
     boolean setQuestionPublished(Long id, boolean published) {
-        return jdbc.update("UPDATE questions SET is_published = :published, updated_at = now() WHERE question_id = :id",
+        return jdbc.update("UPDATE questions SET is_published = :published, updated_at = now() WHERE question_id = :id AND deleted_at IS NULL",
                 new MapSqlParameterSource("id", id).addValue("published", published)) > 0;
     }
 

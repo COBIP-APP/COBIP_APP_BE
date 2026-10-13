@@ -35,7 +35,7 @@ class ContentRepository {
             JOIN categories c ON c.category_id = q.category_id
             JOIN users u ON u.user_id = q.created_by
             LEFT JOIN languages l ON l.language_id = q.language_id
-            WHERE 1 = 1
+            WHERE q.deleted_at IS NULL
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -154,6 +154,16 @@ class ContentRepository {
         query.param("revealExplanation", true);
         query.orderBy("ORDER BY q.created_at DESC, q.question_id DESC");
         return jdbcTemplate.query(query.sql(), query.params(), (rs, rowNum) -> mapQuestion(rs));
+    }
+
+    boolean deleteOwnedQuestion(Long userId, Long questionId) {
+        return jdbcTemplate.update("""
+                UPDATE questions SET deleted_at = now(), updated_at = now()
+                WHERE question_id = :questionId AND created_by = :userId
+                  AND client_request_id IS NOT NULL AND is_published = false
+                  AND deleted_at IS NULL
+                """, new MapSqlParameterSource("questionId", questionId)
+                .addValue("userId", userId)) > 0;
     }
 
     SavedQuestion saveOwnedQuestion(Long userId, UserQuestionDraft draft) {

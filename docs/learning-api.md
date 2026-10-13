@@ -32,6 +32,7 @@
 | GET | `/api/users/me/progress` | 없음 | `200` 내 학습 배열. 기록 없으면 `[]` |
 | POST | `/api/users/me/questions` | AI 생성 문제와 `clientRequestId` | `201` 새 문제, 같은 요청 재시도는 `200` 기존 문제 |
 | GET | `/api/users/me/questions` | 없음 | `200` 내가 저장한 문제 배열. 기록 없으면 `[]` |
+| DELETE | `/api/users/me/questions/{questionId}` | 없음 | `204` 본인이 저장한 비공개 AI 문제 삭제. 본인 문제가 아니거나 이미 삭제됐으면 `404` |
 | POST | `/api/questions/{questionId}/submissions` | 답안 객체 | `201` 제출 객체 |
 | GET | `/api/questions/{questionId}/submissions/latest?userId={userId}` | 없음 | `200` 최신 제출, 없으면 `404` |
 | PUT | `/api/users/{userId}/progress/templates/{templateId}` | 진도 객체 | `200` 저장된 진도 |
@@ -136,6 +137,8 @@ FE `develop`의 홈 화면은 현재 이 브랜치의 `/api/users/me/progress`�
 ```
 
 위 응답은 주요 필드 예시다. 실제 `categoryId`, `id`는 DB에서 발급되며 `choiceOptions`에는 요청한 보기 전부가 들어간다. `GET /api/users/me/questions`는 같은 형식의 객체 배열을 생성 시각 최신순으로 반환하며 기록이 없으면 `[]`다. 작성자는 `GET /api/questions/{id}`로 자기 비공개 문제의 **정답을 제외한** 상세를 보고 기존 제출 API로 풀 수 있다. 정답과 해설은 채점이 `COMPLETED`된 제출 응답에서 확인한다. 내 문제 목록과 저장 직후 응답에는 등록한 해설이 포함된다.
+
+`DELETE /api/users/me/questions/{questionId}`는 로그인한 사용자가 직접 저장한 **비공개 AI 문제**만 삭제한다. 요청 본문은 없고 성공하면 응답 본문 없는 `204`다. 다른 사용자의 문제, 관리자 등록 문제, 공개 문제, 이미 삭제된 문제 또는 없는 ID는 모두 `404`다. 삭제된 문제는 목록·상세 조회와 새 답안 제출에서 제외하지만 기존 제출 행은 보존한다. 삭제 후 같은 `clientRequestId`로 저장을 재시도하면 `409`이며, 새 문제를 저장하려면 새 요청 ID를 사용해야 한다. Flutter는 `204` 응답을 JSON으로 파싱하지 않고 목록을 다시 조회한다.
 
 ### 문제 제출과 채점
 

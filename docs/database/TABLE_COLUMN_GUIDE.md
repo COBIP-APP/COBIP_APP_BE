@@ -106,6 +106,7 @@ SQL은 `category_id`와 `language_id`의 조합 자체가 업무적으로 적절
 - `pass_score`: 통과 기준 점수. 0~100, 기본값은 70.
 - `display_order`: 목차 안 또는 문제 목록에서의 표시 순서. 양수다.
 - `is_published`: 사용자에게 공개할지 여부. 기본값은 `false`.
+- `deleted_at` (NULL 가능): 본인이 저장한 비공개 AI 문제를 삭제한 시각. 삭제 후 목록·상세·새 제출에서 제외하되 기존 제출 이력은 보관한다.
 - `created_at`: 문제 등록 시각.
 - `updated_at`: 문제 마지막 수정 시각.
 
