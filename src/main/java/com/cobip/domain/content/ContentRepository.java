@@ -130,7 +130,9 @@ class ContentRepository {
         query.add("AND q.related_section_id = :sectionId", "sectionId", sectionId);
         query.param("revealExplanation", !publishedOnly);
         query.add("AND q.is_published = true", publishedOnly);
-        query.orderBy("ORDER BY q.display_order, q.question_id");
+        query.orderBy(sectionId == null && templateId == null
+                ? "ORDER BY q.created_at DESC, q.question_id DESC"
+                : "ORDER BY q.display_order, q.question_id");
 
         return jdbcTemplate.query(query.sql(), query.params(), (rs, rowNum) -> mapQuestion(rs));
     }
