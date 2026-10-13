@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 record MediaResponse(
         Long id,
@@ -80,6 +81,8 @@ record QuestionResponse(
         Long languageId,
         String languageCode,
         String languageName,
+        @Schema(description = "앞뒤 공백을 제거한 사용자 입력 생성 주제. 기존 문제 또는 주제 미지정 문제는 null.", example = "AWS", nullable = true)
+        String generationTopic,
         Long createdBy,
         String creatorNickname,
         String questionType,

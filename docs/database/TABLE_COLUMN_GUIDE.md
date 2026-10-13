@@ -93,6 +93,7 @@ SQL은 `category_id`와 `language_id`의 조합 자체가 업무적으로 적절
 - `related_section_id` (FK, NULL 가능): 문제가 연결된 목차 항목 ID. 독립 문제 또는 챕터 전체에만 관련되면 비운다.
 - `created_by` (FK): 문제를 등록한 사용자 또는 관리자 계정 ID. 사용자 저장 문제는 작성자 본인에게만 비공개 조회·제출을 허용한다.
 - `client_request_id` (NULL 가능): Flutter가 생성한 저장 요청 UUID. 사용자별 중복 저장을 막는다. 관리자 문제에는 사용하지 않는다.
+- `generation_topic` (text, NULL 가능): 사용자가 입력한 언어·AI 생성 주제의 앞뒤 공백을 제거한 값. 언어 연결 여부와 관계없이 보존하며 기존 데이터는 NULL로 유지한다. V6 마이그레이션에서 추가한다.
 - `language_id` (FK, NULL 가능): 문제의 프로그래밍 언어. 언어와 관계없는 문제는 비울 수 있다.
 - `question_type`: `MULTIPLE_CHOICE`(객관식), `OX`, `SHORT_ANSWER`(단답형), `FILL_BLANK`(빈칸형), `DESCRIPTIVE`(서술형), `CODE_EXPLANATION`(코드 해석), `CODE_WRITING`(코드 작성) 중 하나.
 - `prompt`: 사용자에게 보여줄 문제 지문.
