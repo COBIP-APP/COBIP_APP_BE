@@ -26,7 +26,7 @@ class ActivityRepository {
     }
 
     boolean publishedTemplateExists(Long templateId) {
-        String sql = "SELECT EXISTS (SELECT 1 FROM templates WHERE template_id = :id AND is_published = true)";
+        String sql = "SELECT EXISTS (SELECT 1 FROM templates WHERE template_id = :id AND is_published = true AND deleted_at IS NULL)";
         return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
                 sql, new MapSqlParameterSource("id", templateId), Boolean.class));
     }
@@ -189,9 +189,10 @@ class ActivityRepository {
 
     Optional<ProgressResponse> findProgress(Long userId, Long templateId) {
         String sql = """
-                SELECT user_id, template_id, last_section_id, started_at, last_studied_at, completed_at
-                FROM user_progress
-                WHERE user_id = :userId AND template_id = :templateId
+                SELECT p.user_id, p.template_id, p.last_section_id, p.started_at, p.last_studied_at, p.completed_at
+                FROM user_progress p
+                JOIN templates t ON t.template_id = p.template_id
+                WHERE p.user_id = :userId AND p.template_id = :templateId AND t.deleted_at IS NULL
                 """;
 
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -213,8 +214,8 @@ class ActivityRepository {
                 JOIN templates t ON t.template_id = p.template_id
                 JOIN categories c ON c.category_id = t.category_id
                 LEFT JOIN languages l ON l.language_id = t.language_id
-                LEFT JOIN template_sections s ON s.section_id = p.last_section_id
-                WHERE p.user_id = :userId AND t.is_published = true
+                LEFT JOIN template_sections s ON s.section_id = p.last_section_id AND s.deleted_at IS NULL
+                WHERE p.user_id = :userId AND t.is_published = true AND t.deleted_at IS NULL
                 ORDER BY p.last_studied_at DESC, p.template_id DESC
                 """;
         return jdbcTemplate.query(sql, new MapSqlParameterSource("userId", userId),
@@ -256,7 +257,7 @@ class ActivityRepository {
                 SELECT b.user_id, b.template_id, t.title, t.summary, t.difficulty, b.created_at
                 FROM template_bookmarks b
                 JOIN templates t ON t.template_id = b.template_id
-                WHERE b.user_id = :userId AND t.is_published = true
+                WHERE b.user_id = :userId AND t.is_published = true AND t.deleted_at IS NULL
                 ORDER BY b.created_at DESC, b.template_id DESC
                 """;
 

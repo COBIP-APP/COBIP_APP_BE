@@ -6,10 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 class AdminContentRepository {
@@ -37,7 +39,7 @@ class AdminContentRepository {
                 UPDATE templates SET category_id = :categoryId, language_id = :languageId,
                     title = :title, summary = :summary, description = :description,
                     difficulty = :difficulty, display_order = :displayOrder, updated_at = now()
-                WHERE template_id = :id
+                WHERE template_id = :id AND deleted_at IS NULL
                 """;
         return jdbc.update(sql, templateParams(request).addValue("id", id)) > 0;
     }
@@ -56,7 +58,7 @@ class AdminContentRepository {
         String sql = """
                 UPDATE template_sections SET title = :title, body = :body, example_code = :exampleCode,
                     display_order = :displayOrder
-                WHERE template_id = :templateId AND section_id = :sectionId
+                WHERE template_id = :templateId AND section_id = :sectionId AND deleted_at IS NULL
                 """;
         return jdbc.update(sql, new MapSqlParameterSource("title", request.title())
                 .addValue("body", request.body()).addValue("exampleCode", request.exampleCode())
@@ -107,13 +109,52 @@ class AdminContentRepository {
     }
 
     boolean setTemplatePublished(Long id, boolean published) {
-        return jdbc.update("UPDATE templates SET is_published = :published, updated_at = now() WHERE template_id = :id",
+        return jdbc.update("UPDATE templates SET is_published = :published, updated_at = now() WHERE template_id = :id AND deleted_at IS NULL",
                 new MapSqlParameterSource("id", id).addValue("published", published)) > 0;
     }
 
     boolean setQuestionPublished(Long id, boolean published) {
         return jdbc.update("UPDATE questions SET is_published = :published, updated_at = now() WHERE question_id = :id AND deleted_at IS NULL",
                 new MapSqlParameterSource("id", id).addValue("published", published)) > 0;
+    }
+
+    @Transactional
+    boolean deleteTemplate(Long id) {
+        MapSqlParameterSource params = new MapSqlParameterSource("id", id);
+        int deleted = jdbc.update("UPDATE templates SET deleted_at = now(), is_published = false, updated_at = now() WHERE template_id = :id AND deleted_at IS NULL", params);
+        if (deleted == 0) return false;
+        jdbc.update("UPDATE template_sections SET deleted_at = now() WHERE template_id = :id AND deleted_at IS NULL", params);
+        jdbc.update("UPDATE questions SET deleted_at = now(), is_published = false, updated_at = now() WHERE related_template_id = :id AND deleted_at IS NULL", params);
+        return true;
+    }
+
+    @Transactional
+    boolean deleteSection(Long templateId, Long sectionId) {
+        MapSqlParameterSource params = new MapSqlParameterSource("templateId", templateId).addValue("sectionId", sectionId);
+        List<Long> ids = jdbc.queryForList("""
+                WITH RECURSIVE subtree AS (
+                    SELECT section_id FROM template_sections
+                    WHERE template_id = :templateId AND section_id = :sectionId AND deleted_at IS NULL
+                    UNION ALL
+                    SELECT child.section_id FROM template_sections child
+                    JOIN subtree parent ON child.parent_section_id = parent.section_id
+                    WHERE child.template_id = :templateId AND child.deleted_at IS NULL
+                )
+                SELECT section_id FROM subtree
+                """, params, Long.class);
+        if (ids.isEmpty()) return false;
+        MapSqlParameterSource subtree = new MapSqlParameterSource("ids", ids);
+        jdbc.update("UPDATE user_progress SET last_section_id = NULL WHERE last_section_id IN (:ids)", subtree);
+        jdbc.update("UPDATE questions SET deleted_at = now(), is_published = false, updated_at = now() WHERE related_section_id IN (:ids) AND deleted_at IS NULL", subtree);
+        jdbc.update("UPDATE template_sections SET deleted_at = now() WHERE section_id IN (:ids)", subtree);
+        return true;
+    }
+
+    boolean deleteQuestion(Long id) {
+        return jdbc.update("""
+                UPDATE questions SET deleted_at = now(), is_published = false, updated_at = now()
+                WHERE question_id = :id AND client_request_id IS NULL AND deleted_at IS NULL
+                """, new MapSqlParameterSource("id", id)) > 0;
     }
 
     private MapSqlParameterSource templateParams(TemplateSaveRequest request) {

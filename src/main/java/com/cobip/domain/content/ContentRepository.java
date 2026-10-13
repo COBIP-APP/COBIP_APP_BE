@@ -28,6 +28,7 @@ class ContentRepository {
                    q.language_id, l.code AS language_code, l.name AS language_name,
                    q.generation_topic,
                    q.created_by, u.nickname AS creator_nickname,
+                   q.client_request_id IS NOT NULL AS user_saved,
                    q.question_type, q.prompt, q.code_snippet, q.choice_options,
                    CASE WHEN :revealExplanation THEN q.explanation ELSE NULL END AS explanation,
                    q.difficulty, q.pass_score, q.display_order, q.is_published,
@@ -56,7 +57,7 @@ class ContentRepository {
                 FROM templates t
                 JOIN categories c ON c.category_id = t.category_id
                 LEFT JOIN languages l ON l.language_id = t.language_id
-                WHERE 1 = 1
+                WHERE t.deleted_at IS NULL
                 """);
         query.add("AND t.category_id = :categoryId", "categoryId", categoryId);
         query.add("AND t.language_id = :languageId", "languageId", languageId);
@@ -75,7 +76,7 @@ class ContentRepository {
                 FROM templates t
                 JOIN categories c ON c.category_id = t.category_id
                 LEFT JOIN languages l ON l.language_id = t.language_id
-                WHERE t.template_id = :templateId
+                WHERE t.template_id = :templateId AND t.deleted_at IS NULL
                 """);
         query.param("templateId", templateId);
         query.add("AND t.is_published = true", publishedOnly);
@@ -90,7 +91,7 @@ class ContentRepository {
         String sql = """
                 SELECT section_id, parent_section_id, title, body, example_code, display_order
                 FROM template_sections
-                WHERE template_id = :templateId
+                WHERE template_id = :templateId AND deleted_at IS NULL
                 ORDER BY parent_section_id NULLS FIRST, display_order, section_id
                 """;
 
@@ -311,6 +312,7 @@ class ContentRepository {
                 rs.getString("generation_topic"),
                 rs.getLong("created_by"),
                 rs.getString("creator_nickname"),
+                rs.getBoolean("user_saved"),
                 rs.getString("question_type"),
                 rs.getString("prompt"),
                 rs.getString("code_snippet"),

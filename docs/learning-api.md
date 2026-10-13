@@ -22,7 +22,7 @@
 | GET | `/api/questions?categoryId=&languageId=&templateId=&sectionId=` | 공개된 문제 목록. 필터는 선택 |
 | GET | `/api/questions/{questionId}` | 공개된 문제 또는 본인이 저장한 비공개 문제 상세. 정답·모범 답안은 응답하지 않음 |
 
-템플릿·문제 조회의 `publishedOnly=false`는 관리자만 사용한다. 관리자는 이를 이용해 비공개 초안도 조회한다. 일반 사용자가 이 값을 보내면 `403`이다. 일반 사용자는 비공개 템플릿의 목차를 직접 조회할 수도 없다. 일반 문제 상세 응답의 `explanation`은 정답 유출을 막기 위해 `null`이다. 문제 응답에는 `createdBy`와 `creatorNickname`이 포함된다. 일반 문제 목록은 공개 문제만 반환하므로 본인이 저장한 비공개 문제는 아래의 내 문제 목록에서 조회한다. DB 초기값에는 언어·카테고리만 있고 **템플릿·목차·문제는 자동 생성되지 않는다.**
+템플릿·문제 조회의 `publishedOnly=false`는 관리자만 사용한다. 관리자는 이를 이용해 비공개 초안도 조회한다. 일반 사용자가 이 값을 보내면 `403`이다. 일반 사용자는 비공개 템플릿의 목차를 직접 조회할 수도 없다. 일반 문제 상세 응답의 `explanation`은 정답 유출을 막기 위해 `null`이다. 문제 응답에는 `createdBy`, `creatorNickname`, 사용자 저장 문제 여부인 `userSaved`가 포함된다. 일반 문제 목록은 공개 문제만 반환하므로 본인이 저장한 비공개 문제는 아래의 내 문제 목록에서 조회한다. DB 초기값에는 언어·카테고리만 있고 **템플릿·목차·문제는 자동 생성되지 않는다.**
 
 ## 사용자 화면: 계정과 활동
 
@@ -194,13 +194,16 @@ AI 채점 대상인 코드 작성형·단답형·빈칸형·서술형은 제출 
 | POST | `/api/admin/templates` | `201 {"id":…}` 비공개 초안 |
 | PUT | `/api/admin/templates/{templateId}` | `204` |
 | PATCH | `/api/admin/templates/{templateId}/publication` | `204` |
+| DELETE | `/api/admin/templates/{templateId}` | `204` 챕터·목차·연결 문제 숨김 |
 | POST | `/api/admin/templates/{templateId}/sections` | `201 {"id":…}` |
 | PUT | `/api/admin/templates/{templateId}/sections/{sectionId}` | `204` |
+| DELETE | `/api/admin/templates/{templateId}/sections/{sectionId}` | `204` 해당 목차·하위 목차·연결 문제 숨김 |
 | POST | `/api/admin/questions` | `201 {"id":…}` 비공개 초안 |
 | POST | `/api/admin/ai/questions/generate` | `201 {"id":…}` AI 객관식 한 건을 비공개 초안으로 저장 |
 | GET | `/api/admin/questions/{questionId}` | `200` 정답·모범 답안·평가 기준을 포함한 관리자 상세 |
 | PUT | `/api/admin/questions/{questionId}` | `204` |
 | PATCH | `/api/admin/questions/{questionId}/publication` | `204` |
+| DELETE | `/api/admin/questions/{questionId}` | `204` 관리자 등록 문제 숨김 |
 
 언어 저장 본문은 `code`, `name`, `displayOrder`, `active`; 카테고리 생성 본문은 여기에 `parentId`를 더한다. 카테고리 수정에서 부모는 변경할 수 없다. 기존 언어·카테고리 전체 목록은 `/api/languages?activeOnly=false`, `/api/categories?activeOnly=false`로 볼 수 있다.
 
@@ -210,7 +213,7 @@ AI 채점 대상인 코드 작성형·단답형·빈칸형·서술형은 제출 
 
 AI 문제 생성 요청 예시: `{"categoryId":2,"aiCategory":"Infrastructure","domain":"AWS","languageId":null,"relatedTemplateId":null,"relatedSectionId":null,"displayOrder":1}`. 관리자만 호출할 수 있다. AI 서버에는 `MULTIPLE_CHOICE` 한 문제만 요청하며, 응답의 임시 `id`는 버리고 DB가 발급한 ID를 반환한다. 저장된 `choiceOptions`는 `[{"key":"1","text":"첫 번째 보기"}]` 형태의 JSON 배열이다. 생성 직후 `isPublished=false`다. 관리자는 `GET /api/admin/questions/{id}`로 정답·해설을 검토하고 필요하면 `PUT`으로 수정한 뒤 공개한다. AI 응답 오류는 `502`/`504`이고, DB 분류·표시 순서 충돌은 `409`일 수 있다.
 
-공개 전환 본문은 템플릿·문제 모두 `{"published":true}` 또는 `{"published":false}`다. 삭제 API와 이미지 업로드 API는 아직 없다. DB에서 관리자 권한을 부여한 계정은 **다시 로그인**해 새 `ADMIN` JWT를 받아야 한다.
+공개 전환 본문은 템플릿·문제 모두 `{"published":true}` 또는 `{"published":false}`다. 삭제 요청에는 본문이 없고 관리자 JWT가 필요하다. 삭제된 항목은 목록·상세에서 제외되며 같은 ID의 재삭제는 `404`다. 챕터 삭제는 목차와 연결 문제까지, 목차 삭제는 하위 목차와 연결 문제까지 함께 숨긴다. 삭제는 DB에 삭제 시각을 남기는 방식이며 기존 제출·학습 기록은 보관한다. 관리자 문제 삭제는 `userSaved=false`인 관리자 등록 문제에만 허용한다. 이미지 업로드 API는 아직 없다. DB에서 관리자 권한을 부여한 계정은 **다시 로그인**해 새 `ADMIN` JWT를 받아야 한다.
 
 ## 현재 미구현·추가 결정 사항
 
