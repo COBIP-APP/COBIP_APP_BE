@@ -146,6 +146,7 @@ CREATE TABLE questions (
         CHECK (pass_score BETWEEN 0 AND 100),
     display_order integer NOT NULL CHECK (display_order > 0),
     is_published boolean NOT NULL DEFAULT false,
+    deleted_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT questions_prompt_not_blank CHECK (btrim(prompt) <> ''),

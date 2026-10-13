@@ -39,7 +39,7 @@ class ActivityRepository {
                        q.explanation, q.difficulty, l.code AS language_code
                 FROM questions q
                 LEFT JOIN languages l ON l.language_id = q.language_id
-                WHERE question_id = :questionId
+                WHERE question_id = :questionId AND q.deleted_at IS NULL
                 """;
 
         return jdbcTemplate.query(sql,

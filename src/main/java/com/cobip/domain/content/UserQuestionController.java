@@ -13,17 +13,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/users/me/questions")
 @SecurityRequirement(name = "bearerAuth")
-@Tag(name = "내 문제", description = "AI 생성 문제 저장과 작성한 문제 조회")
+@Tag(name = "내 문제", description = "AI 생성 문제 저장·조회·삭제")
 class UserQuestionController {
     private final ContentRepository repository;
     private final ObjectMapper objectMapper;
@@ -39,13 +42,23 @@ class UserQuestionController {
         Long userId = Long.valueOf(jwt.getSubject());
         UserQuestionDraft draft = toDraft(request);
         ContentRepository.SavedQuestion saved = repository.saveOwnedQuestion(userId, draft);
-        QuestionResponse response = repository.findQuestion(saved.id(), false, userId).orElseThrow();
+        QuestionResponse response = repository.findQuestion(saved.id(), false, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "A deleted question cannot be saved again with the same request ID."));
         return ResponseEntity.status(saved.created() ? HttpStatus.CREATED : HttpStatus.OK).body(response);
     }
 
     @GetMapping
     List<QuestionResponse> mine(@AuthenticationPrincipal Jwt jwt) {
         return repository.findOwnedQuestions(Long.valueOf(jwt.getSubject()));
+    }
+
+    @DeleteMapping("/{questionId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long questionId) {
+        if (!repository.deleteOwnedQuestion(Long.valueOf(jwt.getSubject()), questionId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found.");
+        }
     }
 
     private UserQuestionDraft toDraft(UserQuestionSaveRequest request) {
