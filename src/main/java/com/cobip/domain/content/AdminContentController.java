@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -52,6 +53,13 @@ class AdminContentController {
         if (!repository.setTemplatePublished(templateId, request.published())) notFound("Template");
     }
 
+    @DeleteMapping("/templates/{templateId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteTemplate(@AuthenticationPrincipal Jwt jwt, @PathVariable Long templateId) {
+        requireAdmin(jwt);
+        if (!repository.deleteTemplate(templateId)) notFound("Template");
+    }
+
     @PostMapping("/templates/{templateId}/sections")
     @ResponseStatus(HttpStatus.CREATED)
     IdResponse createSection(@AuthenticationPrincipal Jwt jwt, @PathVariable Long templateId,
@@ -66,6 +74,14 @@ class AdminContentController {
                        @PathVariable Long sectionId, @Valid @RequestBody SectionUpdateRequest request) {
         requireAdmin(jwt);
         if (!repository.updateSection(templateId, sectionId, request)) notFound("Section");
+    }
+
+    @DeleteMapping("/templates/{templateId}/sections/{sectionId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteSection(@AuthenticationPrincipal Jwt jwt, @PathVariable Long templateId,
+                       @PathVariable Long sectionId) {
+        requireAdmin(jwt);
+        if (!repository.deleteSection(templateId, sectionId)) notFound("Section");
     }
 
     @PostMapping("/questions")
@@ -99,6 +115,13 @@ class AdminContentController {
                          @Valid @RequestBody PublicationRequest request) {
         requireAdmin(jwt);
         if (!repository.setQuestionPublished(questionId, request.published())) notFound("Question");
+    }
+
+    @DeleteMapping("/questions/{questionId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteQuestion(@AuthenticationPrincipal Jwt jwt, @PathVariable Long questionId) {
+        requireAdmin(jwt);
+        if (!repository.deleteQuestion(questionId)) notFound("Question");
     }
 
     private void requireAdmin(Jwt jwt) {

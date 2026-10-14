@@ -85,6 +85,7 @@ record QuestionResponse(
         String generationTopic,
         Long createdBy,
         String creatorNickname,
+        Boolean userSaved,
         String questionType,
         String prompt,
         String codeSnippet,
